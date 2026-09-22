@@ -11,7 +11,7 @@ let secret=process.env.APP_SECRET;
 if(!secret){const path=resolve(root,'.data','local-secret');try{secret=await readFile(path,'utf8');}catch{secret=randomBytes(32).toString('hex');await writeFile(path,secret,{mode:0o600});}}
 const port=Number(process.env.PORT||8787),origin=process.env.APP_ORIGIN||`http://localhost:${port}`;
 if(!['localhost','127.0.0.1','[::1]'].includes(new URL(origin).hostname))throw new Error('Local dev binds to loopback only. Use the Worker deployment for hosting.');
-const mime={'.html':'text/html; charset=utf-8','.js':'application/javascript; charset=utf-8','.css':'text/css; charset=utf-8','.svg':'image/svg+xml','.json':'application/json'};
+const mime={'.html':'text/html; charset=utf-8','.js':'application/javascript; charset=utf-8','.css':'text/css; charset=utf-8','.svg':'image/svg+xml','.json':'application/json','.woff2':'font/woff2','.txt':'text/plain; charset=utf-8'};
 const db=localDatabase(resolve(root,'.data','game.sqlite'));
 const env={...process.env,APP_ORIGIN:origin,APP_SECRET:secret,DEV_LOCAL:'1',DB:db,
   ASSETS:{async fetch(request){
