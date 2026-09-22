@@ -1,0 +1,11 @@
+import test from 'node:test';import assert from 'node:assert/strict';
+import {replay,createInitialState} from '../public/rules.js';
+import {buildCandidates,tacticalBounds,positionFeatures,localDecision,moveMetrics} from '../public/policy.js';
+import {applyAction} from '../public/rules.js';
+test('Normal blocks an immediate human win',()=>{const b=buildCandidates(replay([0,1,0,1,0]),'normal');assert.deepEqual(b.eligible.map(c=>c.column),[0]);});
+test('immediate own win retained',()=>{const b=buildCandidates(replay([0,1,0,1,0,2]),'normal');assert.deepEqual(b.eligible.map(c=>c.column),[0]);});
+test('cutoffs are unknown rather than draws',()=>{assert.deepEqual(tacticalBounds(createInitialState(),1,0).bounds,[-1,1]);const b=tacticalBounds(createInitialState(),1,6,1);assert.deepEqual(b.bounds,[-1,1]);assert.equal(b.budgetExhausted,true);});
+test('terminal bounds preserve perspective',()=>{const s=replay([3,2,3,2,3,2,3]);assert.deepEqual(tacticalBounds(s,1,0).bounds,[1,1]);assert.deepEqual(tacticalBounds(s,2,0).bounds,[-1,-1]);});
+test('unsupported completion square remains unplayable',()=>{const s=replay([0,0,1,1,2,2]);const f=positionFeatures(s,2);assert.ok(f.threats.self.some(t=>t.column===3&&t.row===1&&!t.playable));});
+test('local policy deterministic and legal at each difficulty',()=>{for(const d of ['easy','normal','hard','jev']){const s=replay([3,2,4,5]);const a=localDecision(s,d),b=localDecision(s,d);assert.deepEqual(a.action,b.action);assert.ok(a.candidates.some(c=>c.column===a.action.column));}});
+test('tactical metrics record missed winning option',()=>{const s=replay([0,1,0,1,0,2]);const after=applyAction(s,{type:'drop',column:6});const m=moveMetrics(s,after,6);assert.equal(m.immediateWinAvailable,true);assert.equal(m.missedImmediateWin,true);});

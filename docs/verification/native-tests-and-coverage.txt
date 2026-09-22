@@ -1,0 +1,361 @@
+
+> jev-connect-four@1.0.0 test:coverage
+> node --experimental-test-coverage --test tests/*.test.js
+
+TAP version 13
+# (node:2861) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+# (Use `node --trace-warnings ...` to show where the warning was created)
+# Subtest: Ed25519 rejects modified body, invalid signature and old timestamp
+ok 1 - Ed25519 rejects modified body, invalid signature and old timestamp
+  ---
+  duration_ms: 187.246886
+  type: 'test'
+  ...
+# Subtest: Discord PING also requires a valid signature
+ok 2 - Discord PING also requires a valid signature
+  ---
+  duration_ms: 18.187529
+  type: 'test'
+  ...
+# Subtest: launch ticket requires same authenticated Discord identity and is single-use
+ok 3 - launch ticket requires same authenticated Discord identity and is single-use
+  ---
+  duration_ms: 81.053029
+  type: 'test'
+  ...
+# Subtest: context expiry cannot be renewed by editing a browser ID
+ok 4 - context expiry cannot be renewed by editing a browser ID
+  ---
+  duration_ms: 44.375276
+  type: 'test'
+  ...
+# Subtest: OAuth state is session-bound, single-use and expired states fail
+ok 5 - OAuth state is session-bound, single-use and expired states fail
+  ---
+  duration_ms: 39.953387
+  type: 'test'
+  ...
+# Subtest: OAuth rotates session and completes a staged community launch without persisting tokens
+ok 6 - OAuth rotates session and completes a staged community launch without persisting tokens
+  ---
+  duration_ms: 40.141327
+  type: 'test'
+  ...
+# Subtest: server/channel leaderboards require fresh matching context
+ok 7 - server/channel leaderboards require fresh matching context
+  ---
+  duration_ms: 362.018946
+  type: 'test'
+  ...
+# (node:2862) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+# (Use `node --trace-warnings ...` to show where the warning was created)
+# Subtest: provider timeout is a named failure, not a leaked DOM exception code
+ok 8 - provider timeout is a named failure, not a leaked DOM exception code
+  ---
+  duration_ms: 135.874942
+  type: 'test'
+  ...
+# Subtest: daily provider quota includes retry attempts
+ok 9 - daily provider quota includes retry attempts
+  ---
+  duration_ms: 231.721302
+  type: 'test'
+  ...
+# Subtest: history cursor preserves matches with equal timestamps
+ok 10 - history cursor preserves matches with equal timestamps
+  ---
+  duration_ms: 111.780617
+  type: 'test'
+  ...
+# Subtest: cursors are tamper evident and bound to the owner
+ok 11 - cursors are tamper evident and bound to the owner
+  ---
+  duration_ms: 83.414673
+  type: 'test'
+  ...
+# Subtest: reference oracle refuses to call a truncated opening exact
+ok 12 - reference oracle refuses to call a truncated opening exact
+  ---
+  duration_ms: 4.148782
+  type: 'test'
+  ...
+# Subtest: reference oracle solves a legal near-full draw fixture
+ok 13 - reference oracle solves a legal near-full draw fixture
+  ---
+  duration_ms: 1.714754
+  type: 'test'
+  ...
+# Subtest: an exhausted reference oracle reports unknown, never a false draw
+ok 14 - an exhausted reference oracle reports unknown, never a false draw
+  ---
+  duration_ms: 2.434347
+  type: 'test'
+  ...
+# (node:2863) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+# (Use `node --trace-warnings ...` to show where the warning was created)
+# Subtest: max 28 questions and explicit candidate references
+ok 15 - max 28 questions and explicit candidate references
+  ---
+  duration_ms: 467.175654
+  type: 'test'
+  ...
+# Subtest: valid response becomes a bounded legal action
+ok 16 - valid response becomes a bounded legal action
+  ---
+  duration_ms: 86.535701
+  type: 'test'
+  ...
+# Subtest: tactical bypass does not call provider
+ok 17 - tactical bypass does not call provider
+  ---
+  duration_ms: 11.130101
+  type: 'test'
+  ...
+# Subtest: reject model drift, keys, nonfinite scores, distributions and usage
+ok 18 - reject model drift, keys, nonfinite scores, distributions and usage
+  ---
+  duration_ms: 7.033252
+  type: 'test'
+  ...
+# Subtest: 429 retries once with retry-after and records attempts
+ok 19 - 429 retries once with retry-after and records attempts
+  ---
+  duration_ms: 12.29742
+  type: 'test'
+  ...
+# Subtest: long Retry-After fails without waiting or reroll
+ok 20 - long Retry-After fails without waiting or reroll
+  ---
+  duration_ms: 6.376246
+  type: 'test'
+  ...
+# Subtest: network and malformed JSON fail closed
+ok 21 - network and malformed JSON fail closed
+  ---
+  duration_ms: 7.916583
+  type: 'test'
+  ...
+# Subtest: Normal blocks an immediate human win
+ok 22 - Normal blocks an immediate human win
+  ---
+  duration_ms: 16.928387
+  type: 'test'
+  ...
+# Subtest: immediate own win retained
+ok 23 - immediate own win retained
+  ---
+  duration_ms: 6.061005
+  type: 'test'
+  ...
+# Subtest: cutoffs are unknown rather than draws
+ok 24 - cutoffs are unknown rather than draws
+  ---
+  duration_ms: 0.778769
+  type: 'test'
+  ...
+# Subtest: terminal bounds preserve perspective
+ok 25 - terminal bounds preserve perspective
+  ---
+  duration_ms: 7.346727
+  type: 'test'
+  ...
+# Subtest: unsupported completion square remains unplayable
+ok 26 - unsupported completion square remains unplayable
+  ---
+  duration_ms: 1.132166
+  type: 'test'
+  ...
+# Subtest: local policy deterministic and legal at each difficulty
+ok 27 - local policy deterministic and legal at each difficulty
+  ---
+  duration_ms: 768.568299
+  type: 'test'
+  ...
+# Subtest: tactical metrics record missed winning option
+ok 28 - tactical metrics record missed winning option
+  ---
+  duration_ms: 1.240158
+  type: 'test'
+  ...
+# Subtest: 69 distinct windows
+ok 29 - 69 distinct windows
+  ---
+  duration_ms: 7.173054
+  type: 'test'
+  ...
+# Subtest: initial state and gravity
+ok 30 - initial state and gravity
+  ---
+  duration_ms: 1.892205
+  type: 'test'
+  ...
+# Subtest: invalid columns, action types, full columns
+ok 31 - invalid columns, action types, full columns
+  ---
+  duration_ms: 2.428795
+  type: 'test'
+  ...
+# Subtest: vertical and horizontal wins, no post-terminal action
+ok 32 - vertical and horizontal wins, no post-terminal action
+  ---
+  duration_ms: 1.436422
+  type: 'test'
+  ...
+# Subtest: both diagonal orientations
+ok 33 - both diagonal orientations
+  ---
+  duration_ms: 11.359655
+  type: 'test'
+  ...
+# Subtest: full board fixture is a draw
+ok 34 - full board fixture is a draw
+  ---
+  duration_ms: 1.772831
+  type: 'test'
+  ...
+# Subtest: serialization and structural rejection
+ok 35 - serialization and structural rejection
+  ---
+  duration_ms: 8.643286
+  type: 'test'
+  ...
+# Subtest: enumerate every legal action sequence through depth 5
+ok 36 - enumerate every legal action sequence through depth 5
+  ---
+  duration_ms: 2215.112163
+  type: 'test'
+  ...
+# Subtest: 1000 seeded legal playouts replay identically
+ok 37 - 1000 seeded legal playouts replay identically
+  ---
+  duration_ms: 1907.286197
+  type: 'test'
+  ...
+# (node:2906) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+# (Use `node --trace-warnings ...` to show where the warning was created)
+# Subtest: guest match plays complete game; export verifies and produces analytics
+ok 38 - guest match plays complete game; export verifies and produces analytics
+  ---
+  duration_ms: 930.526219
+  type: 'test'
+  ...
+# Subtest: same idempotency key cannot create two moves or change body
+ok 39 - same idempotency key cannot create two moves or change body
+  ---
+  duration_ms: 69.832603
+  type: 'test'
+  ...
+# Subtest: two simultaneous commands commit only one human move
+ok 40 - two simultaneous commands commit only one human move
+  ---
+  duration_ms: 49.893997
+  type: 'test'
+  ...
+# Subtest: failed CAS cannot append ghost events
+ok 41 - failed CAS cannot append ghost events
+  ---
+  duration_ms: 22.295826
+  type: 'test'
+  ...
+# Subtest: provider failure marks interruption, never fabricates opponent or result
+ok 42 - provider failure marks interruption, never fabricates opponent or result
+  ---
+  duration_ms: 247.71543
+  type: 'test'
+  ...
+# Subtest: ownership and CSRF enforce trust boundary
+ok 43 - ownership and CSRF enforce trust boundary
+  ---
+  duration_ms: 30.232492
+  type: 'test'
+  ...
+# Subtest: ranked result verifies after resignation, side/version-cohort leaderboard includes it
+ok 44 - ranked result verifies after resignation, side/version-cohort leaderboard includes it
+  ---
+  duration_ms: 79.267596
+  type: 'test'
+  ...
+# Subtest: ranked active match prevents cherry-picking restarts
+ok 45 - ranked active match prevents cherry-picking restarts
+  ---
+  duration_ms: 21.729502
+  type: 'test'
+  ...
+# Subtest: deadline is disclosed adjudication, rather than board win
+ok 46 - deadline is disclosed adjudication, rather than board win
+  ---
+  duration_ms: 55.934038
+  type: 'test'
+  ...
+# Subtest: tampered evidence and missing last event detected
+ok 47 - tampered evidence and missing last event detected
+  ---
+  duration_ms: 72.043937
+  type: 'test'
+  ...
+# Subtest: telemetry is opt-in, numeric and unrelated to score
+ok 48 - telemetry is opt-in, numeric and unrelated to score
+  ---
+  duration_ms: 27.254596
+  type: 'test'
+  ...
+# Subtest: account deletion cascades owned matches and diagnostics
+ok 49 - account deletion cascades owned matches and diagnostics
+  ---
+  duration_ms: 23.436017
+  type: 'test'
+  ...
+# Subtest: retention marks evidence pruned instead of claiming full audit
+ok 50 - retention marks evidence pruned instead of claiming full audit
+  ---
+  duration_ms: 32.800152
+  type: 'test'
+  ...
+# Subtest: analytics interpolation, missing values and CSV injection safety
+ok 51 - analytics interpolation, missing values and CSV injection safety
+  ---
+  duration_ms: 1.51737
+  type: 'test'
+  ...
+1..51
+# tests 51
+# suites 0
+# pass 51
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 5800.214758
+# start of coverage report
+# ----------------------------------------------------------------------------
+# file                | line % | branch % | funcs % | uncovered lines
+# ----------------------------------------------------------------------------
+# bench               |        |          |         | 
+#  oracle.mjs         | 100.00 |    84.38 |  100.00 | 
+# public              |        |          |         | 
+#  analytics.js       |  98.06 |    81.37 |   92.31 | 10-12
+#  policy.js          | 100.00 |    91.14 |   96.30 | 
+#  rules.js           | 100.00 |    96.12 |  100.00 | 
+# scripts             |        |          |         | 
+#  local-db.mjs       | 100.00 |    88.24 |   92.31 | 
+# server              |        |          |         | 
+#  audit.js           |  97.26 |    58.18 |  100.00 | 43-44
+#  auth.js            | 100.00 |    79.57 |   95.24 | 
+#  db.js              | 100.00 |    93.55 |  100.00 | 
+#  jev.js             | 100.00 |    92.06 |  100.00 | 
+#  leaderboard.js     |  92.59 |    81.82 |  100.00 | 25-28
+#  matches.js         |  96.39 |    86.11 |  100.00 | 91-96
+#  util.js            | 100.00 |    84.78 |  100.00 | 
+#  worker.js          |  78.40 |    80.00 |   63.64 | 40-68 85-87 113-114 128
+# tests               |        |          |         | 
+#  auth.test.js       |  98.48 |    95.24 |  100.00 | 51
+#  edge-cases.test.js | 100.00 |   100.00 |   94.12 | 
+#  helpers.js         | 100.00 |   100.00 |   87.50 | 
+#  jev.test.js        | 100.00 |   100.00 |   95.00 | 
+#  policy.test.js     | 100.00 |   100.00 |  100.00 | 
+#  rules.test.js      | 100.00 |   100.00 |  100.00 | 
+#  server.test.js     | 100.00 |   100.00 |  100.00 | 
+# ----------------------------------------------------------------------------
+# all files           |  96.48 |    86.65 |   95.63 | 
+# ----------------------------------------------------------------------------
+# end of coverage report

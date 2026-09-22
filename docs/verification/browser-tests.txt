@@ -1,0 +1,46 @@
+TAP version 13
+# Subtest: desktop plays a local turn with real worker and shows decision evidence
+ok 1 - desktop plays a local turn with real worker and shows decision evidence
+  ---
+  duration_ms: 5332.815579
+  type: 'test'
+  ...
+# Subtest: keyboard interaction, board table and reduced motion
+ok 2 - keyboard interaction, board table and reduced motion
+  ---
+  duration_ms: 2123.95879
+  type: 'test'
+  ...
+# Subtest: mobile has no horizontal overflow and controls remain operable
+ok 3 - mobile has no horizontal overflow and controls remain operable
+  ---
+  duration_ms: 1894.584933
+  type: 'test'
+  ...
+# Subtest: analytics uses actual local observations, not invented model usage
+ok 4 - analytics uses actual local observations, not invented model usage
+  ---
+  duration_ms: 3744.75182
+  type: 'test'
+  ...
+# Subtest: replay slider reconstructs prior positions without changing match
+ok 5 - replay slider reconstructs prior positions without changing match
+  ---
+  duration_ms: 3207.270353
+  type: 'test'
+  ...
+# Subtest: local opponent first works at Hard difficulty; analysis toggle hides panel
+ok 6 - local opponent first works at Hard difficulty; analysis toggle hides panel
+  ---
+  duration_ms: 2269.675043
+  type: 'test'
+  ...
+1..6
+# tests 6
+# suites 0
+# pass 6
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 20124.280051

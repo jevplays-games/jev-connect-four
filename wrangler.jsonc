@@ -1,0 +1,23 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "jev-connect-four",
+  "main": "server/worker.js",
+  "compatibility_date": "2025-09-17",
+  "assets": {"directory": "./public", "binding": "ASSETS", "run_worker_first": true},
+  "d1_databases": [{
+    "binding": "DB", "database_name": "jev-connect-four",
+    "database_id": "REPLACE_WITH_ID_FROM_WRANGLER_D1_CREATE",
+    "migrations_dir": "migrations"
+  }],
+  "vars": {
+    "APP_ORIGIN": "https://REPLACE_WITH_YOUR_HOST",
+    "JEV_MODEL": "jev-1.13.0",
+    "JEV_INPUT_USD_PER_MILLION": "0.042",
+    "GUEST_DAILY_MATCH_LIMIT": "3",
+    "USER_DAILY_MATCH_LIMIT": "30",
+    "GLOBAL_DAILY_JEV_CALL_LIMIT": "3000",
+    "AUDIT_RETENTION_DAYS": "90"
+  },
+  "triggers": {"crons": ["*/15 * * * *"]},
+  "limits": {"cpu_ms": 1000}
+}

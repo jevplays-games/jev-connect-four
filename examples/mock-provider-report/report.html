@@ -1,0 +1,90 @@
+<!doctype html><html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Connect Four · Evidence report</title>
+<style>body{font:15px/1.6 system-ui;background:#101626;color:#f0f2fa;max-width:1100px;margin:40px auto;padding:0 24px}h1{font-weight:600}h2{margin-top:36px}p,small{color:#b4bed3}.cards{display:grid;grid-template-columns:repeat(4,1fr);gap:15px}.card{padding:20px;background:#1a2338;border-radius:12px}.card strong{font-size:32px;display:block;color:#b8a9ff}table{width:100%;border-collapse:collapse;font-size:13px}th,td{padding:10px;text-align:left;border-bottom:1px solid #35415c}th{color:#b8a9ff}pre{white-space:pre-wrap;background:#1a2338;padding:18px;border-radius:10px;overflow-wrap:anywhere}a{color:#b8a9ff}.scroll{overflow-x:auto}@media(max-width:600px){.cards{grid-template-columns:1fr 1fr}}</style>
+<p>JEV ARCADE / RESEARCH ANALYTICS</p><h1>Connect Four evidence report</h1><p>1 selected exports · generated 2026-09-22T05:28:36.315Z. Diagnostic completeness and trust are source-dependent.</p>
+<div class="cards"><div class="card"><small>Matches</small><strong>1</strong></div><div class="card"><small>Verified results</small><strong>0</strong></div><div class="card"><small>Model decisions</small><strong>9</strong></div><div class="card"><small>Audit events</small><strong>40</strong></div></div>
+<h2>Outcome cohorts</h2><div class="scroll"><table><thead><tr><th>Difficulty</th><th>Opponent version</th><th>Human disc</th><th>Mode</th><th>Matches</th><th>Verified</th><th>W / L / D</th><th>Result rate</th></tr></thead><tbody><tr><td>normal</td><td>b94776fe43f86698bf37</td><td>1</td><td>practice</td><td>1</td><td>0</td><td>0 / 0 / 0</td><td>—</td></tr></tbody></table></div>
+<h2>Latency distributions</h2><table><thead><tr><th>Metric</th><th>n</th><th>Mean</th><th>p50</th><th>p90</th><th>p95</th><th>p99</th></tr></thead><tbody><tr><td>modelMs</td><td>9</td><td>2.214</td><td>1.642</td><td>3.607</td><td>5.081</td><td>6.261</td></tr><tr><td>providerAttemptMs</td><td>9</td><td>1.889</td><td>1.282</td><td>3.079</td><td>4.527</td><td>5.685</td></tr><tr><td>preparationMs</td><td>9</td><td>4.27</td><td>2.561</td><td>9.203</td><td>9.582</td><td>9.885</td></tr><tr><td>humanWallTurnMs</td><td>10</td><td>1,700</td><td>1,700</td><td>1,700</td><td>1,700</td><td>1,700</td></tr><tr><td>matchDurationMs</td><td>1</td><td>17,000</td><td>17,000</td><td>17,000</td><td>17,000</td><td>17,000</td></tr><tr><td>plies</td><td>1</td><td>19</td><td>19</td><td>19</td><td>19</td><td>19</td></tr></tbody></table>
+<h2>Tactical observations</h2><table><thead><tr><th>Actor</th><th>Moves</th><th>Immediate-win opportunities</th><th>Missed wins</th><th>Blockable threats</th><th>Neutralized threats</th><th>Avoidable immediate losses</th></tr></thead><tbody><tr><td>human</td><td>10</td><td>3</td><td>2</td><td>0</td><td>0</td><td>0</td></tr><tr><td>jev</td><td>9</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td></tr></tbody></table>
+<h2>Model, search and reliability</h2><pre>{
+  &quot;decisions&quot;: 9,
+  &quot;decisionSources&quot;: {
+    &quot;model&quot;: 9
+  },
+  &quot;failureReasons&quot;: {},
+  &quot;modelDecisions&quot;: 9,
+  &quot;tacticalDecisions&quot;: 0,
+  &quot;failedDecisions&quot;: 0,
+  &quot;failureRate&quot;: 0,
+  &quot;providerAttempts&quot;: 9,
+  &quot;retries&quot;: 0,
+  &quot;statusCounts&quot;: {
+    &quot;200&quot;: 9
+  },
+  &quot;failedAttempts&quot;: 0,
+  &quot;exclusionReasons&quot;: {},
+  &quot;candidates&quot;: {
+    &quot;n&quot;: 9,
+    &quot;min&quot;: 5,
+    &quot;max&quot;: 7,
+    &quot;mean&quot;: 6,
+    &quot;p50&quot;: 6,
+    &quot;p90&quot;: 7,
+    &quot;p95&quot;: 7,
+    &quot;p99&quot;: 7
+  },
+  &quot;eligibleCandidates&quot;: {
+    &quot;n&quot;: 9,
+    &quot;min&quot;: 5,
+    &quot;max&quot;: 7,
+    &quot;mean&quot;: 6,
+    &quot;p50&quot;: 6,
+    &quot;p90&quot;: 7,
+    &quot;p95&quot;: 7,
+    &quot;p99&quot;: 7
+  },
+  &quot;utilityGap&quot;: {
+    &quot;n&quot;: 9,
+    &quot;min&quot;: 0,
+    &quot;max&quot;: 0.5,
+    &quot;mean&quot;: 0.16666666666666666,
+    &quot;p50&quot;: 0,
+    &quot;p90&quot;: 0.5,
+    &quot;p95&quot;: 0.5,
+    &quot;p99&quot;: 0.5
+  },
+  &quot;confidence&quot;: {
+    &quot;n&quot;: 18,
+    &quot;min&quot;: 1,
+    &quot;max&quot;: 1,
+    &quot;mean&quot;: 1,
+    &quot;p50&quot;: 1,
+    &quot;p90&quot;: 1,
+    &quot;p95&quot;: 1,
+    &quot;p99&quot;: 1
+  },
+  &quot;entropyBits&quot;: {
+    &quot;n&quot;: 18,
+    &quot;min&quot;: 0,
+    &quot;max&quot;: 0,
+    &quot;mean&quot;: 0,
+    &quot;p50&quot;: 0,
+    &quot;p90&quot;: 0,
+    &quot;p95&quot;: 0,
+    &quot;p99&quot;: 0
+  },
+  &quot;inputTokens&quot;: 900,
+  &quot;outputTokens&quot;: 90,
+  &quot;questions&quot;: 108,
+  &quot;searchNodes&quot;: 339,
+  &quot;searchBudgetExhaustedCandidates&quot;: 0
+}</pre><h2>Cost accounting</h2><pre>{
+  &quot;estimatedInputUSD&quot;: 0.000037800000000000004,
+  &quot;estimatedOutputUSD&quot;: 0,
+  &quot;knownUsageDecisions&quot;: 9,
+  &quot;attemptsWithUnknownBilling&quot;: 0,
+  &quot;allModelPricesConfigured&quot;: true,
+  &quot;excludesHosting&quot;: true,
+  &quot;isInvoice&quot;: false
+}</pre>
+<h2>Machine-readable tables</h2><p><a href="matches.csv">matches.csv</a> · <a href="moves.csv">moves.csv</a> · <a href="decisions.csv">decisions.csv</a> · <a href="candidates.csv">candidates.csv</a> · <a href="questions.csv">questions.csv</a> · <a href="attempts.csv">attempts.csv</a> · <a href="events.csv">events.csv</a> · <a href="clientMetrics.csv">clientMetrics.csv</a> · <a href="summary.json">summary.json</a></p>
+<h2>Interpretation limits</h2><p>Official outcome aggregates exclude practice and interruptions.</p><p>Cohorts must be compared separately by difficulty, opponent version and starting side.</p><p>Server turn elapsed time includes human idle time and network delay, not just thinking.</p><p>Tactical metrics identify immediate opportunities only, not game-theoretic optimality.</p><p>Client metrics are opt-in, unverified, and never used to award results.</p><p>Wilson interval describes binary wins; repeated games need not be independent.</p><p>This report derives statistics; it does not replace the independent audit command. No provider confidence is treated as a calibrated win probability.</p></html>

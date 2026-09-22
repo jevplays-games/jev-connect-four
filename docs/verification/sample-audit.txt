@@ -1,0 +1,19 @@
+
+> jev-connect-four@1.0.0 audit
+> node scripts/audit.mjs examples/mock-provider-match-audit.json
+
+{
+  "file": "examples/mock-provider-match-audit.json",
+  "ok": true,
+  "checks": {
+    "hashChain": true,
+    "rules": true,
+    "decisionProvenance": true,
+    "outcome": true
+  },
+  "errors": [],
+  "eventCount": 40,
+  "moves": 19,
+  "replayHash": "9f78dfb9bcf450fcf6e62b7ff32b72dd72413c41caf0a8c4fa8ce5141fac6b6f",
+  "limitation": "Checks internal consistency against the recorded database tip; not an independently signed attestation."
+}

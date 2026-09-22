@@ -1,0 +1,14 @@
+{
+  "node": "v22.16.0",
+  "passed": true,
+  "checks": [
+    "real local HTTP startup",
+    "HTML page",
+    "CSP header",
+    "JavaScript content type",
+    "guest session establishment",
+    "unconfigured services clearly disclosed",
+    "public world leaderboard route"
+  ],
+  "liveProviderCalls": 0
+}

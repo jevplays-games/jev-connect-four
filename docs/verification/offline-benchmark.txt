@@ -1,0 +1,28 @@
+bench-20260922-0-1: win (7 plies)
+bench-20260922-0-2: win (12 plies)
+bench-20260922-1-1: win (9 plies)
+bench-20260922-1-2: win (8 plies)
+bench-20260922-2-1: win (7 plies)
+bench-20260922-2-2: win (16 plies)
+bench-20260922-3-1: win (9 plies)
+bench-20260922-3-2: win (14 plies)
+bench-20260922-4-1: win (11 plies)
+bench-20260922-4-2: win (10 plies)
+bench-20260922-5-1: win (7 plies)
+bench-20260922-5-2: win (8 plies)
+bench-20260922-6-1: win (11 plies)
+bench-20260922-6-2: win (14 plies)
+bench-20260922-7-1: win (9 plies)
+bench-20260922-7-2: win (12 plies)
+bench-20260922-8-1: win (7 plies)
+bench-20260922-8-2: win (10 plies)
+bench-20260922-9-1: win (7 plies)
+bench-20260922-9-2: win (16 plies)
+{
+  "out": "/mnt/data/jev-connect-four/examples/offline-benchmark",
+  "wins": 20,
+  "losses": 0,
+  "draws": 0,
+  "interrupted": 0,
+  "oracleExact": 0
+}

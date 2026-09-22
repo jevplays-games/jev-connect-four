@@ -1,0 +1,461 @@
+{
+  "schemaVersion": 1,
+  "createdAt": "2026-09-22T05:27:14.248Z",
+  "configuration": {
+    "pairs": 10,
+    "seed": 20260922,
+    "policy": "local",
+    "opponent": "random",
+    "difficulty": "normal",
+    "noSafeguards": false,
+    "oracleEmpty": 8
+  },
+  "results": {
+    "wins": 20,
+    "losses": 0,
+    "draws": 0,
+    "interrupted": 0
+  },
+  "bySide": [
+    {
+      "policyDisc": 1,
+      "wins": 10,
+      "losses": 0,
+      "draws": 0
+    },
+    {
+      "policyDisc": 2,
+      "wins": 10,
+      "losses": 0,
+      "draws": 0
+    }
+  ],
+  "pairedScore": 1,
+  "pairedBootstrap95": {
+    "low": 1,
+    "high": 1,
+    "groups": 10,
+    "replicates": 1000
+  },
+  "endgameOracle": {
+    "evaluated": 0,
+    "exact": 0,
+    "optimalActionRate": null,
+    "valueLoss": {
+      "n": 0,
+      "min": null,
+      "max": null,
+      "mean": null,
+      "p50": null,
+      "p90": null,
+      "p95": null,
+      "p99": null
+    }
+  },
+  "telemetry": {
+    "schemaVersion": 1,
+    "generatedAt": "2026-09-22T05:27:14.236Z",
+    "coverage": {
+      "matches": 20,
+      "diagnosticMatches": 20,
+      "notExhaustiveGameTree": true,
+      "modelConfidenceIsWinProbability": false
+    },
+    "outcomes": {
+      "matches": 20,
+      "completed": 20,
+      "verified": 0,
+      "wins": 0,
+      "losses": 0,
+      "draws": 0,
+      "interrupted": 0,
+      "adjudicated": 0,
+      "active": 0,
+      "resultRate": null,
+      "winRate": null,
+      "binaryWinRateWilson95": null,
+      "currentStreak": 0,
+      "bestStreak": 0,
+      "practiceCompleted": 20,
+      "practiceWins": 0,
+      "practiceLosses": 20,
+      "practiceDraws": 0
+    },
+    "funnel": {
+      "started": 20,
+      "firstMove": 20,
+      "modelEvaluated": 0,
+      "completed": 20,
+      "verified": 0
+    },
+    "jev": {
+      "decisions": 164,
+      "decisionSources": {
+        "local": 87,
+        "random": 77
+      },
+      "failureReasons": {},
+      "modelDecisions": 0,
+      "tacticalDecisions": 0,
+      "failedDecisions": 0,
+      "failureRate": 0,
+      "providerAttempts": 0,
+      "retries": 0,
+      "statusCounts": {},
+      "failedAttempts": 0,
+      "exclusionReasons": {
+        "proven_win_available": 116,
+        "proven_loss": 30
+      },
+      "candidates": {
+        "n": 87,
+        "min": 7,
+        "max": 7,
+        "mean": 7,
+        "p50": 7,
+        "p90": 7,
+        "p95": 7,
+        "p99": 7
+      },
+      "eligibleCandidates": {
+        "n": 87,
+        "min": 1,
+        "max": 7,
+        "mean": 5.32183908045977,
+        "p50": 7,
+        "p90": 7,
+        "p95": 7,
+        "p99": 7
+      },
+      "utilityGap": {
+        "n": 0,
+        "min": null,
+        "max": null,
+        "mean": null,
+        "p50": null,
+        "p90": null,
+        "p95": null,
+        "p99": null
+      },
+      "confidence": {
+        "n": 0,
+        "min": null,
+        "max": null,
+        "mean": null,
+        "p50": null,
+        "p90": null,
+        "p95": null,
+        "p99": null
+      },
+      "entropyBits": {
+        "n": 0,
+        "min": null,
+        "max": null,
+        "mean": null,
+        "p50": null,
+        "p90": null,
+        "p95": null,
+        "p99": null
+      },
+      "inputTokens": 0,
+      "outputTokens": 0,
+      "questions": 0,
+      "searchNodes": 4552,
+      "searchBudgetExhaustedCandidates": 0
+    },
+    "cost": {
+      "estimatedInputUSD": 0,
+      "estimatedOutputUSD": 0,
+      "knownUsageDecisions": 0,
+      "attemptsWithUnknownBilling": 0,
+      "allModelPricesConfigured": false,
+      "excludesHosting": true,
+      "isInvoice": false
+    },
+    "latency": {
+      "modelMs": {
+        "n": 0,
+        "min": null,
+        "max": null,
+        "mean": null,
+        "p50": null,
+        "p90": null,
+        "p95": null,
+        "p99": null
+      },
+      "providerAttemptMs": {
+        "n": 0,
+        "min": null,
+        "max": null,
+        "mean": null,
+        "p50": null,
+        "p90": null,
+        "p95": null,
+        "p99": null
+      },
+      "preparationMs": {
+        "n": 0,
+        "min": null,
+        "max": null,
+        "mean": null,
+        "p50": null,
+        "p90": null,
+        "p95": null,
+        "p99": null
+      },
+      "humanWallTurnMs": {
+        "n": 0,
+        "min": null,
+        "max": null,
+        "mean": null,
+        "p50": null,
+        "p90": null,
+        "p95": null,
+        "p99": null
+      },
+      "matchDurationMs": {
+        "n": 20,
+        "min": 8,
+        "max": 96,
+        "mean": 24.25,
+        "p50": 18,
+        "p90": 39.60000000000001,
+        "p95": 47.55000000000004,
+        "p99": 86.30999999999993
+      },
+      "plies": {
+        "n": 20,
+        "min": 7,
+        "max": 16,
+        "mean": 10.2,
+        "p50": 9.5,
+        "p90": 14.200000000000003,
+        "p95": 16,
+        "p99": 16
+      }
+    },
+    "tactics": {
+      "human": {
+        "moves": 97,
+        "immediateWinOpportunities": 1,
+        "takenImmediateWins": 0,
+        "missedImmediateWins": 1,
+        "immediateWinConversion": 0,
+        "blockableThreatTurns": 17,
+        "threatsNeutralized": 3,
+        "blockRate": 0.17647058823529413,
+        "avoidableImmediateLosses": 16,
+        "centerMoveRate": 0.1958762886597938,
+        "playableThreatsAfter": {
+          "n": 97,
+          "min": 0,
+          "max": 2,
+          "mean": 0.09278350515463918,
+          "p50": 0,
+          "p90": 0,
+          "p95": 1,
+          "p99": 1.039999999999992
+        },
+        "unsupportedThreatsAfter": {
+          "n": 97,
+          "min": 0,
+          "max": 0,
+          "mean": 0,
+          "p50": 0,
+          "p90": 0,
+          "p95": 0,
+          "p99": 0
+        }
+      },
+      "jev": {
+        "moves": 107,
+        "immediateWinOpportunities": 20,
+        "takenImmediateWins": 20,
+        "missedImmediateWins": 0,
+        "immediateWinConversion": 1,
+        "blockableThreatTurns": 7,
+        "threatsNeutralized": 7,
+        "blockRate": 1,
+        "avoidableImmediateLosses": 0,
+        "centerMoveRate": 0.45794392523364486,
+        "playableThreatsAfter": {
+          "n": 107,
+          "min": 0,
+          "max": 2,
+          "mean": 0.35514018691588783,
+          "p50": 0,
+          "p90": 1,
+          "p95": 1,
+          "p99": 2
+        },
+        "unsupportedThreatsAfter": {
+          "n": 107,
+          "min": 0,
+          "max": 3,
+          "mean": 0.17757009345794392,
+          "p50": 0,
+          "p90": 1,
+          "p95": 1,
+          "p99": 2
+        }
+      }
+    },
+    "columns": {
+      "human": [
+        9,
+        15,
+        20,
+        19,
+        10,
+        12,
+        12
+      ],
+      "jev": [
+        2,
+        7,
+        12,
+        49,
+        19,
+        12,
+        6
+      ]
+    },
+    "heatmap": {
+      "human": [
+        7,
+        9,
+        14,
+        7,
+        4,
+        10,
+        7,
+        2,
+        6,
+        5,
+        5,
+        3,
+        2,
+        3,
+        0,
+        0,
+        1,
+        4,
+        2,
+        0,
+        2,
+        0,
+        0,
+        0,
+        2,
+        1,
+        0,
+        0,
+        0,
+        0,
+        0,
+        1,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "jev": [
+        2,
+        4,
+        5,
+        13,
+        10,
+        6,
+        5,
+        0,
+        2,
+        5,
+        13,
+        6,
+        4,
+        0,
+        0,
+        1,
+        1,
+        11,
+        2,
+        1,
+        0,
+        0,
+        0,
+        1,
+        8,
+        1,
+        1,
+        1,
+        0,
+        0,
+        0,
+        2,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        2,
+        0,
+        0,
+        0
+      ]
+    },
+    "cohorts": [
+      {
+        "key": "normal|benchmark-c4-policy-1.0.0-local|2|practice",
+        "difficulty": "normal",
+        "opponentVersion": "benchmark-c4-policy-1.0.0-local",
+        "humanDisc": 2,
+        "mode": "practice",
+        "matches": 10,
+        "verified": 0,
+        "wins": 0,
+        "losses": 0,
+        "draws": 0,
+        "interrupted": 0,
+        "resultRate": null
+      },
+      {
+        "key": "normal|benchmark-c4-policy-1.0.0-local|1|practice",
+        "difficulty": "normal",
+        "opponentVersion": "benchmark-c4-policy-1.0.0-local",
+        "humanDisc": 1,
+        "mode": "practice",
+        "matches": 10,
+        "verified": 0,
+        "wins": 0,
+        "losses": 0,
+        "draws": 0,
+        "interrupted": 0,
+        "resultRate": null
+      }
+    ],
+    "eventCount": 408,
+    "notes": [
+      "Official outcome aggregates exclude practice and interruptions.",
+      "Cohorts must be compared separately by difficulty, opponent version and starting side.",
+      "Server turn elapsed time includes human idle time and network delay, not just thinking.",
+      "Tactical metrics identify immediate opportunities only, not game-theoretic optimality.",
+      "Client metrics are opt-in, unverified, and never used to award results.",
+      "Wilson interval describes binary wins; repeated games need not be independent."
+    ]
+  },
+  "caveats": [
+    "Offline local policy runs are not measurements of JEV.",
+    "Human labels in generic tables refer to the baseline agent in this harness.",
+    "Oracle comparisons cover only completely searched endgames, not full-game optimality.",
+    "Opening-prefix moves are marked; do not count them as agent decisions.",
+    "Timing and IDs are not deterministic; seeded logical play is deterministic for local policies.",
+    "This is a bounded smoke benchmark, not evidence of population-level skill or a publishable evaluation by itself."
+  ]
+}
