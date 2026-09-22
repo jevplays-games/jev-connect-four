@@ -1,24 +1,28 @@
 <!doctype html>
 <html lang="en">
-<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#0c1020">
-<title>Connect Four · JEV Arcade</title><link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='15' fill='%237d70ee'/%3E%3Ccircle cx='21' cy='21' r='8' fill='%23f8c76d'/%3E%3Ccircle cx='43' cy='21' r='8' fill='%235cdbce'/%3E%3Ccircle cx='21' cy='43' r='8' fill='%235cdbce'/%3E%3Ccircle cx='43' cy='43' r='8' fill='%23f8c76d'/%3E%3C/svg%3E">
-<link rel="stylesheet" href="/game.css"><script type="module" src="/app.js"></script></head>
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#0e1017">
+<title>Connect Four · JEV Arcade</title>
+<link rel="preload" href="/brand/inter-var.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="icon" type="image/svg+xml" href="/brand/icon.svg">
+<link rel="apple-touch-icon" href="/brand/icon.svg">
+<link rel="stylesheet" href="/brand/brand.css">
+<link rel="stylesheet" href="/game.css"><script type="module" src="/brand/brand.js"></script><script type="module" src="/app.js"></script></head>
 <body>
-<a class="skip" href="#game">Skip to game</a>
-<header class="topbar"><a class="brand" href="/" aria-label="JEV Arcade home"><span class="brand-icon" aria-hidden="true">j.</span>JEV<span class="brand-light">ARCADE</span></a>
-<nav aria-label="Page sections"><button class="nav-link active" data-page="play">Play</button><button class="nav-link" data-page="analytics">Analytics</button><button class="nav-link" data-page="leaderboard">Leaderboard</button></nav>
-<div class="account"><span class="online-dot" aria-hidden="true"></span><span id="identity">Guest</span><button id="login" class="button small">Connect Discord</button><button id="logout" class="button small secondary" hidden>Sign out</button></div></header>
-<main>
-<section class="hero"><div><p class="eyebrow">HUMAN INTUITION / STRUCTURED INTELLIGENCE</p><h1>Four in a row.<br><span>A different kind of opponent.</span></h1><p class="intro">Make your move. Inspect the evidence. Discover how JEV plays.</p></div>
+<a class="jv-skip" href="#game">Skip to game</a>
+<div class="jv-app">
+<header class="jv-header"><a class="jv-brand" href="/" aria-label="JEV Arcade home"><img class="jv-mark" src="/brand/mark.svg" alt="" width="28" height="28"><span class="jv-wordmark">JEV ARCADE</span><span class="jv-sep" aria-hidden="true"></span><span class="jv-title">Connect Four</span></a>
+<span class="jv-status" id="turn-label" aria-live="polite">Ready to play</span>
+<button class="jv-icon-btn jv-menu-btn" id="jv-menu" type="button" aria-expanded="false" aria-controls="jv-sheet" aria-label="Menu"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"/></svg></button></header>
+<main class="jv-main" id="main">
+<section class="hero jv-hero"><div><p class="eyebrow">HUMAN INTUITION / STRUCTURED INTELLIGENCE</p><h1>Four in a row.<br><span>A different kind of opponent.</span></h1><p class="intro">Make your move. Inspect the evidence. Discover how JEV plays.</p></div>
 <div class="hero-meta"><span class="pill"><span class="online-dot"></span> CONNECT FOUR</span><span>7 columns · 6 rows · 1 shared board</span><button class="text-button" id="rules-open">How to play <span aria-hidden="true">↗</span></button></div></section>
 <div id="notice" class="notice" role="status" hidden></div>
-<section id="page-play" class="page active" aria-label="Play Connect Four">
+<section id="page-play" class="page active jv-first" aria-label="Play Connect Four">
 <div class="play-layout">
 <div class="game-card" id="game" tabindex="-1">
 <div class="game-heading"><div class="player-label"><span class="disc-key human">H</span><div><strong id="human-name">You</strong><span>Human</span></div></div>
-<div class="turn-pill" id="turn-label" aria-live="polite">Ready to play</div>
 <div class="player-label opponent"><div><strong id="opponent-name">Local practice</strong><span id="opponent-subtitle">Not JEV</span></div><span class="disc-key jev">J</span></div></div>
-<div class="board-shell"><div id="column-controls" class="column-controls" role="group" aria-label="Choose a column to drop a disc"></div>
+<div class="board-shell jv-fit"><div id="column-controls" class="column-controls" role="group" aria-label="Choose a column to drop a disc"></div>
 <div id="board" class="board" aria-hidden="true"></div></div>
 <p class="board-help" id="board-help">Choose a column above. Keyboard: 1–7 or arrow keys + Enter.</p>
 <details class="accessible-board"><summary>Read board as a table</summary><table id="board-table"><caption>Board, top row to bottom row</caption></table></details>
@@ -61,6 +65,15 @@
 </section>
 </main>
 <footer><span>JEV ARCADE <span class="muted">/ Connect Four</span></span><span>Rules control reality. Evidence explains decisions.</span><button id="privacy-open" class="text-button">Privacy & data</button></footer>
+<div class="jv-scrim" id="jv-scrim"></div>
+<div class="jv-sheet" id="jv-sheet" role="dialog" aria-modal="true" aria-label="Menu">
+<div class="jv-secondary">
+<nav class="jv-tabs" aria-label="Page sections"><button class="nav-link jv-sheet-item active" data-page="play">Play</button><button class="nav-link jv-sheet-item" data-page="analytics">Analytics</button><button class="nav-link jv-sheet-item" data-page="leaderboard">Leaderboard</button></nav>
+<div class="account"><span class="online-dot" aria-hidden="true"></span><span id="identity">Guest</span><button id="login" class="button small jv-sheet-item">Connect Discord</button><button id="logout" class="button small secondary jv-sheet-item" hidden>Sign out</button></div>
+</div>
+</div>
+</div>
+
 <dialog id="rules-dialog"><div class="dialog-header"><h2>Connect Four</h2><button class="text-button" data-close="rules-dialog">Close</button></div><p>Drop a disc into a column. Gravity places it in the lowest open space. Connect four horizontally, vertically, or diagonally before your opponent does. A full board without a connection is a draw.</p><h3>Controls</h3><p>Click or tap a column button. Use keys 1–7, or select a column with the arrow keys and press Enter or Space.</p><h3>JEV with tactical safeguards</h3><p>Legal moves and tactical facts are computed by the rules engine. JEV scores the remaining candidates. Higher difficulty adds tactical depth and structured factors. Local practice is a separate, deterministic heuristic opponent—not JEV.</p><h3>Official matches</h3><p>Sign in with Discord and choose JEV. Official matches assign the starting side, cannot be undone, and have a 24-hour deadline. Resignation or an unfinished deadline counts as a loss. Verified service interruptions do not. Starting sides and opponent versions have separate leaderboards. External assistance cannot be detected reliably.</p></dialog>
 <dialog id="privacy-dialog"><div class="dialog-header"><h2>Privacy & data</h2><button class="text-button" data-close="privacy-dialog">Close</button></div><p>Discord sign-in stores your account ID and display name, not your email or messages. Only game state and candidate features go to JEV. A channel launch records the issuing server and channel for result attribution.</p><p>Authoritative matches retain moves and decision evidence for audit. Deep diagnostic evidence is retained for the operator-configured period (90 days by default); minimal replay and results remain until deletion. Optional client telemetry expires after 7 days.</p><p>Local practice data stays in browser storage. Official world leaderboards show display names and scores, not Discord IDs or channel membership. Diagnostic exports are private to the match owner.</p><div class="export-controls"><button class="button secondary" id="clear-local">Clear local practice history</button><button class="button danger" id="delete-account">Delete account and server data</button></div></dialog>
 <dialog id="replay-dialog"><div class="dialog-header"><h2>Replay inspector</h2><button class="text-button" data-close="replay-dialog">Close</button></div><p id="replay-status" class="muted"></p><label>Move <input id="replay-slider" type="range" min="0" max="0" value="0"></label><div id="replay-board" class="board compact-board" aria-hidden="true"></div><pre id="replay-text"></pre><label>Import a replay JSON <input id="import-replay" type="file" accept=".json,application/json"></label><p class="fineprint">Imported replays are inspected locally and can never submit a leaderboard result.</p></dialog>
