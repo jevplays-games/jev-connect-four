@@ -31,8 +31,11 @@ async function openPage({width=1440,height=1100,reducedMotion='no-preference'}={
       if(String(path).startsWith('/api/leaderboard'))return Response.json({rows:[],scope:'world',difficulty:'normal',humanDisc:1,opponentVersion:null,availableVersions:[],asOf:Date.now()});
       return Response.json({error:'OFFLINE_HARNESS'},{status:503});};`;
     const html=(await get('index.html')).replace('<script type="module" src="/app.js"></script>','')
+      .replace('<script type="module" src="/brand/brand.js"></script>','')
+      .replace('<link rel="stylesheet" href="/brand/brand.css">',`<style>${await get('brand/brand.css')}</style>`)
       .replace('<link rel="stylesheet" href="/game.css">',`<style>${await get('game.css')}</style>`);
     await page.setContent(html);await page.addScriptTag({content:mock+app});
+    await page.addScriptTag({content:(await get('brand/brand.js')).replace(/\bexport (?=(?:const|function|async function|class))/g,'')});
   }else await page.goto(origin,{waitUntil:'networkidle'});
   await page.waitForFunction(()=>document.querySelector('#column-controls').children.length===7);
   return {page,context,errors};
