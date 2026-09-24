@@ -207,5 +207,19 @@ async function init(){if(['easy','normal','hard','jev'].includes(prefs.difficult
   }catch(error){notice(`Local practice is available. ${errorMessage(error)}`);}
   if(!match){const recent=localHistory.at(-1);if(recent?.match?.status==='active'){try{replay(recent.match.actions);localExport=recent;match={...recent.match,local:true,turnReadyAt:Date.now()};renderBoard();renderDecision();await localOpponent();}catch{/* Invalid local storage never affects authoritative state. */}}}
   if(new URLSearchParams(location.search).get('auth')==='denied')notice('Discord sign-in was cancelled. Guest practice remains available.');
+  await autoStart();
+}
+/* Auto-start: the board is playable as soon as the page is, with no click.
+   It runs last and only when `match` is still empty, so a server match resumed
+   by activeMatchId and an unfinished local game restored from history both win
+   over starting a new one -- a reload rejoins, it never opens a second match.
+   Ranked is taken only when the checkbox is actually enabled, which is the same
+   gate the player faces by hand (JEV mode AND signed in). With no JEV key
+   $('mode') is pinned to 'local' above and startGame() routes to createLocal(),
+   so an auto-started game is never relabeled as JEV. */
+async function autoStart(){
+  if(match||busy)return;
+  $('ranked').checked=!$('ranked').disabled;syncControls();
+  try{await startGame();}catch(error){notice(errorMessage(error));}
 }
 init();
