@@ -32,7 +32,7 @@ A single ranked active game per account is enforced separately. Session issuance
 
 ## GoDaddy Node.js hosting
 
-The same Worker `fetch` handler runs on plain Node through `scripts/dev.mjs` when `NODE_ENV=production`. The platform runs `npm run build` (a no-op) then `npm start`, which loads `.env` from the zip root (real process variables win).
+The same Worker `fetch` handler runs on plain Node through `scripts/dev.mjs` in production mode: `NODE_ENV=production`, or (because the host may override `NODE_ENV`) an `APP_ORIGIN` that is `https` on a non-loopback host. Loopback or `http` origins stay local dev (`scripts/mode.mjs`). The platform runs `npm run build` (a no-op) then `npm start`, which loads `.env` from the zip root (real process variables win).
 
 - Listens on `PORT` (injected by the host) at `HOST` (default `0.0.0.0`). TLS is terminated by the proxy.
 - Worker-equivalent environment: `DEV_LOCAL` is not set, so ranked play, Discord interactions, OAuth and the Activity are enabled and cookies are `Secure`. Startup fails without `APP_ORIGIN` and an `APP_SECRET` of 32+ characters.

@@ -4,10 +4,11 @@ import {readFile,mkdir,writeFile} from 'node:fs/promises';
 import {resolve,extname,sep} from 'node:path';
 import {randomBytes} from 'node:crypto';
 import {localDatabase} from './local-db.mjs';
+import {isProduction} from './mode.mjs';
 import worker from '../server/worker.js';
 const root=resolve(fileURLToPath(new URL('..',import.meta.url))),publicRoot=resolve(root,'public');
-// NODE_ENV=production: plain Node hosting (e.g. GoDaddy). Worker-equivalent env: no DEV_LOCAL, required secrets, public bind.
-const prod=process.env.NODE_ENV==='production';
+// Production (NODE_ENV=production or a public https APP_ORIGIN): plain Node hosting (e.g. GoDaddy). Worker-equivalent env: no DEV_LOCAL, required secrets, public bind.
+const prod=isProduction();
 const dataDir=prod?resolve(root,'data'):resolve(root,'.data');
 await mkdir(dataDir,{recursive:true});
 let secret=process.env.APP_SECRET;
