@@ -5,6 +5,16 @@ import {ownedMatch,viewMatch,exportMatch,createMatch,commandMatch,expireMatch} f
 import {leaderboard,signCursor,readCursor} from './leaderboard.js';
 import {summarize,flattenEvidence,csv,distribution} from '../public/analytics.js';
 import {auditExport} from './audit.js';
+import {activityConfig,createActivitySession} from './activity.js';
+
+// Discord shows an Activity inside its own iframe. Only a page loaded with Discord's frame_id may be framed, and only by Discord.
+export const ACTIVITY_FRAME_ANCESTORS='frame-ancestors https://discord.com https://ptb.discord.com https://canary.discord.com';
+function allowDiscordFraming(request,response) {
+  const url=new URL(request.url);
+  if(url.pathname.startsWith('/api/')||!url.searchParams.has('frame_id'))return;
+  response.headers.delete('X-Frame-Options');
+  response.headers.set('Content-Security-Policy',response.headers.get('Content-Security-Policy').replace("frame-ancestors 'none'",ACTIVITY_FRAME_ANCESTORS));
+}
 
 async function getExport(env,row) {
   const events=await loadEvents(env,row.id);
@@ -73,6 +83,8 @@ export async function route(request,env) {
   assert(url.origin===new URL(env.APP_ORIGIN).origin,400,'HOST_REJECTED');
   if(path==='/api/health'&&request.method==='GET')return json({ok:true,version:'1.0.0'});
   if(path==='/api/discord/interactions'&&request.method==='POST')return discordInteraction(request,env);
+  if(path==='/api/activity/config'&&request.method==='GET')return activityConfig(env);
+  if(path==='/api/activity/session'&&request.method==='POST')return createActivitySession(request,env);
   if(path==='/api/me'&&request.method==='GET')return me(request,env);
   if(path==='/api/auth/discord'&&request.method==='GET')return startOAuth(request,env);
   if(path==='/api/auth/discord/callback'&&request.method==='GET')return callbackOAuth(request,env);
@@ -140,7 +152,7 @@ async function fetchHandler(request,env,ctx) {
     }
     if(env.DEV_LOCAL==='1'&&status===500)console.error('LOCAL_ERROR',error.stack);
   }
-  const secured=secureResponse(response);secured.headers.set('Server-Timing',`app;dur=${(performance.now()-started).toFixed(1)}`);
+  const secured=secureResponse(response);allowDiscordFraming(request,secured);secured.headers.set('Server-Timing',`app;dur=${(performance.now()-started).toFixed(1)}`);
   return secured;
 }
 export async function scheduledHandler(event,env) {
