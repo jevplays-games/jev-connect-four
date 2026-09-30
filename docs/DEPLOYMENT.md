@@ -30,6 +30,17 @@ The local server is not intended to be exposed through a public interface or rev
 
 A single ranked active game per account is enforced separately. Session issuance has an additional daily abuse limit. Client telemetry has a session/day cap. These are initial operating policies, not a substitute for host-level abuse protection.
 
+## GoDaddy Node.js hosting
+
+The same Worker `fetch` handler runs on plain Node through `scripts/dev.mjs` when `NODE_ENV=production`. The platform runs `npm run build` (a no-op) then `npm start`, which loads `.env` from the zip root (real process variables win).
+
+- Listens on `PORT` (injected by the host) at `HOST` (default `0.0.0.0`). TLS is terminated by the proxy.
+- Worker-equivalent environment: `DEV_LOCAL` is not set, so ranked play, Discord interactions, OAuth and the Activity are enabled and cookies are `Secure`. Startup fails without `APP_ORIGIN` and an `APP_SECRET` of 32+ characters.
+- Required: `APP_ORIGIN` (`https://connect-four.jevplay.games`), `APP_SECRET`, `TYPESAFE_API_KEY`, `DISCORD_CLIENT_ID`, `DISCORD_CLIENT_SECRET`, `DISCORD_PUBLIC_KEY`. Optional: `HOST`, `DB_FILE`, `TRUST_PROXY`, `ADMIN_DISCORD_IDS` and the limit variables above.
+- `TRUST_PROXY=1` takes the client address for abuse buckets from the last `X-Forwarded-For` entry; with `0` every visitor shares the proxy address and so one guest quota. The request URL is always built from `APP_ORIGIN`; the CSRF `Origin` checks still compare against it.
+- SQLite lives at `data/connect-four.sqlite` (private, never under `public/`). The filesystem is ephemeral: matches, sessions and the ranked leaderboard are lost on redeploy.
+- The Cloudflare cron is replaced by an in-process 60-second timer running the same cleanup/expiry handler.
+
 ## Cloudflare Worker and D1
 
 The provided `wrangler.jsonc` is a deployment template, not an already deployed instance.

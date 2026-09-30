@@ -2,6 +2,7 @@ node_modules/
 .env
 .dev.vars
 .data/
+data/
 .wrangler/
 test-results/
 playwright-report/
