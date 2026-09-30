@@ -20,8 +20,9 @@ worker.onmessage=({data})=>{const job=workerJobs.get(data.id);if(!job)return;wor
 worker.onerror=()=>{for(const job of workerJobs.values()){clearTimeout(job.timer);job.reject(new Error('Local opponent worker failed.'));}workerJobs.clear();};
 function askLocal(state,difficulty){return new Promise((resolve,reject)=>{const id=++requestId,timer=setTimeout(()=>{workerJobs.delete(id);reject(new Error('Local opponent exceeded its time budget.'));},15000);workerJobs.set(id,{resolve,reject,timer});worker.postMessage({id,state,difficulty});});}
 function notice(text,info=false){$('notice').textContent=text;$('notice').classList.toggle('info',info);$('notice').hidden=!text;}
+let bearer=null; // set only inside a Discord Activity, where cookies are not sent
 async function api(path,{method='GET',body,key}={}){
-  const start=performance.now(),response=await fetch(path,{method,credentials:'same-origin',headers:method==='GET'?{}:{'Content-Type':'application/json','X-CSRF-Token':csrf,...(key?{'Idempotency-Key':key}:{})},...(body!==undefined?{body:JSON.stringify(body)}:{})});
+  const start=performance.now(),response=await fetch(path,{method,credentials:'same-origin',headers:{...(bearer?{Authorization:`Bearer ${bearer}`}:{}),...(method==='GET'?{}:{'Content-Type':'application/json','X-CSRF-Token':csrf,...(key?{'Idempotency-Key':key}:{})})},...(body!==undefined?{body:JSON.stringify(body)}:{})});
   const text=await response.text();let data;try{data=JSON.parse(text);}catch{throw new Error('The server returned an unreadable response.');}
   if(!response.ok){const error=new Error(data.error||`Request failed (${response.status})`);error.code=data.error;error.details=data.details;error.status=response.status;throw error;}
   return {data,latency:performance.now()-start};
@@ -200,6 +201,10 @@ document.addEventListener('keydown',event=>{if(currentPage!=='play'||document.qu
 async function init(){if(['easy','normal','hard','jev'].includes(prefs.difficulty))$('difficulty').value=prefs.difficulty;$('show-analysis').checked=prefs.analysis!==false;$('telemetry-consent').checked=prefs.telemetry===true;
   const fragment=new URLSearchParams(location.hash.slice(1)),launch=fragment.get('launch');if(launch)history.replaceState(null,'',location.pathname+location.search);
   renderBoard();renderDecision();
+  if(new URLSearchParams(location.search).has('frame_id')){
+    try{bearer=(await (await import('/activity.js')).signInWithDiscord(api)).token;}
+    catch(error){notice(`Could not sign in through Discord. ${errorMessage(error)}`);}
+  }
   try{await refreshIdentity();$('mode').value=identity.jevConfigured?(prefs.mode==='local'?'local':'jev'):'local';syncControls();
     if(launch){const {data}=await api('/api/context/redeem',{method:'POST',body:{ticket:launch}});if(data.requiresLogin)notice('Community launch staged. Connect the same Discord account to verify the server and channel.',true);else{await refreshIdentity();notice('Discord community context verified for this launch.',true);}}
     else if(!identity.jevConfigured)notice('Local practice is ready. Configure the server’s TypeSafe key to enable real JEV; Discord credentials enable official results.',true);
