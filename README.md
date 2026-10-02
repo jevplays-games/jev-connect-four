@@ -1,3 +1,5 @@
+<p align="center"><img src="assets/banner.jpg" alt="Pixel-art robot Jev dropping a disc into a Connect Four grid at a table in a neon cyan and magenta arcade" width="100%"></p>
+
 # Connect Four vs JEV
 
 A playable, framework-free Connect Four application with a server-side JEV adapter, Discord identity and launch context, authoritative matches, community leaderboards, and detailed research analytics.
