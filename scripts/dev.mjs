@@ -17,7 +17,7 @@ if(!secret){const path=resolve(root,'.data','local-secret');try{secret=await rea
 const port=Number(process.env.PORT||8787),host=prod?(process.env.HOST||'0.0.0.0'):'127.0.0.1',trustProxy=prod&&process.env.TRUST_PROXY==='1',origin=process.env.APP_ORIGIN||(prod?'':`http://localhost:${port}`);
 if(!origin)throw new Error('Production requires APP_ORIGIN.');
 if(!prod&&!['localhost','127.0.0.1','[::1]'].includes(new URL(origin).hostname))throw new Error('Local dev binds to loopback only. Use the Worker deployment for hosting.');
-const mime={'.html':'text/html; charset=utf-8','.js':'application/javascript; charset=utf-8','.css':'text/css; charset=utf-8','.svg':'image/svg+xml','.json':'application/json','.woff2':'font/woff2','.txt':'text/plain; charset=utf-8'};
+const mime={'.html':'text/html; charset=utf-8','.js':'application/javascript; charset=utf-8','.css':'text/css; charset=utf-8','.svg':'image/svg+xml','.png':'image/png','.json':'application/json','.woff2':'font/woff2','.txt':'text/plain; charset=utf-8'};
 const db=localDatabase(resolve(dataDir,prod?(process.env.DB_FILE||'connect-four.sqlite'):'game.sqlite'));
 const env={...process.env,APP_ORIGIN:origin,APP_SECRET:secret,DB:db,...(prod?{}:{DEV_LOCAL:'1'}),
   ASSETS:{async fetch(request){

@@ -44,7 +44,12 @@ function renderBoard(){
   const head=make('tr');for(let c=0;c<7;c++)head.append(make('th',null,`Col ${c+1}`));table.append(head);
   for(let r=5;r>=0;r--){const tr=make('tr');for(let c=0;c<7;c++){const v=s.board[r*7+c];tr.append(make('td',null,v===0?'Empty':v===humanDisc?'Human':'Opponent'));}table.append(tr);}
   let status=!match?'Ready to play':busy?(isLocal()?'Local opponent evaluating…':'Waiting for server…'):match.status==='interrupted'?'Service interrupted':match.status==='thinking'?'JEV turn pending':match.result==='win'?'You win':match.result==='loss'?(match.adjudication?'Match adjudicated':'Opponent wins'):match.result==='draw'?'Draw':myTurn?'Your turn':'Opponent’s turn';
-  $('turn-label').textContent=status;$('move-count').textContent=String(s.ply).padStart(2,'0');
+  $('turn-label').textContent=status;$('game-status').textContent=status;
+  // End state: the status line becomes the result plaque in place, and the side to move is lit.
+  const res=match&&match.result?({win:'is-win',loss:'is-loss',draw:'is-draw'}[match.result]??''):'';
+  $('turn-row').className=`turn-row${res?` jv-plaque ${res}`:''}`;
+  $('human-label').classList.toggle('is-turn',myTurn);$('opponent-label').classList.toggle('is-turn',active&&!myTurn);
+  $('move-count').textContent=String(s.ply).padStart(2,'0');
   $('opponent-name').textContent=isLocal()||!match?'Local practice':'JEV';$('opponent-subtitle').textContent=isLocal()||!match?'Not JEV':'With tactical safeguards';
   $('side-label').textContent=humanDisc===1?'You move first':'Opponent moves first';
   $('verification-badge').textContent=!match||isLocal()?'LOCAL PRACTICE':match.eligible?'VERIFIED RESULT':match.status==='interrupted'?'UNRANKED · INTERRUPTED':match.ranked?'OFFICIAL · IN PROGRESS':'SERVER PRACTICE';
@@ -53,7 +58,13 @@ function renderBoard(){
   $('board-help').textContent=match?.state.lastMove?`${match.state.lastMove.disc===humanDisc?'Human':'Opponent'} placed a disc in column ${match.state.lastMove.column+1}, row ${match.state.lastMove.row+1}. ${status}.`:'Choose a column. Keyboard: 1–7 or arrow keys + Enter.';
   renderTimeline();return performance.now()-start;
 }
-function drawBoard(node,state,humanDisc,preview=null){node.replaceChildren();for(let r=5;r>=0;r--)for(let c=0;c<7;c++){const i=r*7+c,v=state.board[i],cell=make('div','cell');cell.dataset.row=r;cell.dataset.column=c;if(v)cell.classList.add(v===humanDisc?'disc-human':'disc-jev');if(state.winningCells?.includes(i))cell.classList.add('winning');if(state.lastMove?.row===r&&state.lastMove?.column===c)cell.classList.add('last');if(!v&&preview===c&&landingRow(state.board,c)===r)cell.classList.add('preview');node.append(cell);}}
+function drawBoard(node,state,humanDisc,preview=null){
+  // Cells are built once and kept, so a re-render never restarts a disc's drop animation: only a disc that just arrived carries .is-new.
+  if(node.children.length!==42){node.replaceChildren();for(let r=5;r>=0;r--)for(let c=0;c<7;c++){const cell=make('div','cell');cell.dataset.row=r;cell.dataset.column=c;node.append(cell);}}
+  let k=0;for(let r=5;r>=0;r--)for(let c=0;c<7;c++){const i=r*7+c,v=state.board[i],cell=node.children[k++],disc=v?(v===humanDisc?'disc-human':'disc-jev'):'',prev=cell.dataset.disc||'';
+    const fresh=Boolean(disc)&&(prev!==disc||cell.classList.contains('is-new'));cell.dataset.disc=disc;
+    cell.className=`cell${disc?' '+disc:''}${state.winningCells?.includes(i)?' winning':''}${state.lastMove?.row===r&&state.lastMove?.column===c?' last':''}${!v&&preview===c&&landingRow(state.board,c)===r?' preview':''}${fresh?' is-new':''}`;}
+}
 function renderTimeline(){const el=$('move-timeline');el.replaceChildren();if(!match?.actions?.length){el.append(make('p','empty-state','Your match begins here.'));return;}match.actions.forEach((c,i)=>{const actor=(i%2===0?1:2)===match.humanDisc?'H':'J';const e=make('span',`move-chip ${actor==='H'?'human-chip':''}`,`${String(i+1).padStart(2,'0')} · ${actor} ${c+1}`);e.title=`Move ${i+1}: ${actor==='H'?'human':'opponent'} column ${c+1}`;el.append(e);});}
 function renderDecision(d=match?.lastDecision){$('analysis-body').hidden=!$('show-analysis').checked;if(!d){$('analysis-title').textContent='Awaiting the first move';$('analysis-source').textContent='Evidence appears after the opponent acts.';$('candidate-count').textContent='—';$('eligible-count').textContent='—';$('decision-time').textContent='—';$('candidate-chart').replaceChildren(make('p','empty-state','No decisions yet.'));$('factor-list').replaceChildren(make('p','empty-state','Only returned structured judgments are shown.'));$('decision-json').textContent='No decision recorded.';return;}
   const local=d.source==='local',tactical=d.source==='tactical';$('analysis-title').textContent=`Column ${d.action.column+1} selected`;
