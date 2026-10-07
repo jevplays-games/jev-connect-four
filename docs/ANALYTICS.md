@@ -129,7 +129,7 @@ Latency summaries contain count, minimum, maximum, mean, p50, p90, p95 and p99. 
 
 Server human-turn elapsed time includes idle time and network delay, not only human reasoning. Browser `inputDelayMs` is a residual application timing estimate, not a browser Event Timing/INP measurement. Request/render timing and long-task observations are device-reported and untrusted. The browser's optional counters are submitted after a turn, not continuously streamed.
 
-Provider calls have a three-second decision budget and at most one bounded retry for supported overload/transient statuses. An expired decision lease interrupts the match; the application does not reroll a lost remote answer after a process crash and claim it was the same decision.
+Provider calls have a three-second decision budget and at most one bounded retry, taken for supported overload/transient statuses or for a reply that decodes but fails typed validation (for example `JEV_SCORE_INCONSISTENT`); the rejected reply is recorded as a failed attempt and never used. An expired decision lease interrupts the match; the application does not reroll a lost remote answer after a process crash and claim it was the same decision.
 
 ## Tokens and estimated cost
 
