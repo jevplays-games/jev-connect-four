@@ -120,7 +120,11 @@ export async function executeDecision(plan,env,options={}) {
       }
       const raw=await response.text(); bad(raw.length<1000000,'JEV_RESPONSE_TOO_LARGE');
       let decoded; try {decoded=JSON.parse(raw);} catch {throw new HttpError(502,'JEV_INVALID_JSON');}
-      const valid=validateResponse(decoded,plan.request),ranked=rankAnswers(plan,valid);
+      // A reply that decodes but fails typed validation (schema, ranges, a score that disagrees with its own
+      // distribution) is the model's fault, not the transport's: ask once more inside the same budget instead of
+      // voiding the match on a single bad answer. The reply is never used; the second answer is validated the same way.
+      let valid; try { valid=validateResponse(decoded,plan.request); } catch(error) { error.reask=true; throw error; }
+      const ranked=rankAnswers(plan,valid);
       attempts.push({attempt,httpStatus,latencyMs:performance.now()-t,responseBytes:utf8(raw).length,usage:valid.usage,errorCode:null});
       return {action:{type:'drop',column:ranked[0].column},source:'model',model:valid.model,candidates:plan.candidates,
         ranked,factors:ranked[0].factors,attempts,usage:valid.usage,response:valid,
@@ -130,6 +134,7 @@ export async function executeDecision(plan,env,options={}) {
     } catch(error) {
       if(!error.alreadyRecorded) attempts.push({attempt,httpStatus,latencyMs:performance.now()-t,
         errorCode:error.name==='TimeoutError'||error.name==='AbortError'?'JEV_TIMEOUT':error.code||'JEV_NETWORK_OR_SCHEMA_ERROR'});
+      if(error.reask&&attempt===1&&budget-(performance.now()-started)>=300) continue;
       const failureCode=error.name==='TimeoutError'||error.name==='AbortError'?'JEV_TIMEOUT':typeof error.code==='string'?error.code:'JEV_UNAVAILABLE';
       throw Object.assign(new HttpError(error.status||503,failureCode),{attempts});
     }
