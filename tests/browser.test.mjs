@@ -15,7 +15,7 @@ test.before(async()=>{
   browser=await chromium.launch({headless:true,executablePath:process.env.CHROMIUM_PATH||undefined,args:['--no-sandbox']});
 });
 test.after(async()=>{await browser?.close();server?.kill('SIGTERM');});
-async function openPage({width=1440,height=1100,reducedMotion='no-preference',setup}={}){
+async function openPage({width=1440,height=1100,reducedMotion='no-preference',setup,waitUntil='networkidle'}={}){
   const context=await browser.newContext({viewport:{width,height},reducedMotion});
   const page=await context.newPage(),errors=[];page.on('pageerror',e=>errors.push(e.message));
   page.setDefaultTimeout(10000);
@@ -37,7 +37,7 @@ async function openPage({width=1440,height=1100,reducedMotion='no-preference',se
       .replace('<link rel="stylesheet" href="/game.css">',`<style>${await get('game.css')}</style>`);
     await page.setContent(html);await page.addScriptTag({content:mock+app});
     await page.addScriptTag({content:(await get('brand/brand.js')).replace(/\bexport (?=(?:const|function|async function|class))/g,'')});
-  }else await page.goto(origin,{waitUntil:'networkidle'});
+  }else await page.goto(origin,{waitUntil});
   await page.waitForFunction(()=>document.querySelector('#column-controls').children.length===7);
   return {page,context,errors};
 }
@@ -113,7 +113,7 @@ async function fixturePage(initial,options={}){
   let release;const hold=options.hold?new Promise(resolveHold=>{release=resolveHold;}):null;
   const shaped=options.serverShaped?await serverShaped(options.serverShaped.user):null;
   const fixture={me:initial,posts:[],auth:0,meGets:0,release:()=>release?.(),shaped};
-  const opened=await openPage({...options,setup:async page=>{
+  const opened=await openPage({...options,waitUntil:hold?'load':'networkidle',setup:async page=>{
     await page.route('**/api/me',route=>{if(route.request().method()!=='GET')return route.continue();fixture.meGets++;return route.fulfill({json:fixture.me});});
     await page.route(/\/api\/matches(\/|\?|$)/,async route=>{const request=route.request(),path=new URL(request.url()).pathname;
       if(shaped){if(request.method()==='POST'&&path==='/api/matches')fixture.posts.push(request.postDataJSON());return shaped.handle(route);}
