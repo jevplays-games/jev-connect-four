@@ -279,7 +279,8 @@ async function playsOneMove(page,shaped){
   const before=await moveCount(page);
   await page.locator('.column-button[data-column="3"]').click();
   await page.waitForFunction(was=>Number(document.getElementById('move-count').textContent)>was,before);
-  const drop=shaped.log.findLast(entry=>entry.path.endsWith('/commands'));
+  // The count rises optimistically, before the server has answered, so wait for the handler's own response.
+  let drop;for(const until=Date.now()+8000;!(drop=shaped.log.findLast(entry=>entry.path.endsWith('/commands')));){if(Date.now()>until)break;await page.waitForTimeout(50);}
   assert.ok(drop&&drop.status>=200&&drop.status<300,'the server accepted the move');
   await page.waitForFunction(()=>!document.getElementById('new-game').disabled);
 }
