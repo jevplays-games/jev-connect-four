@@ -28,7 +28,7 @@ async function api(path,{method='GET',body,key}={}){
   return {data,latency:performance.now()-start};
 }
 function errorMessage(error){const map={JEV_NOT_CONFIGURED:'JEV is not configured on this server. Local practice remains available.',DISCORD_NOT_CONFIGURED:'Discord is not configured on this server.',RATE_LIMITED:'The server usage limit was reached. Local practice remains available.',ACTIVE_RANKED_MATCH:'You have an active ranked match. Resume or resign that match before starting another.',DISCORD_LOGIN_REQUIRED:'Ranked matches need a Discord sign-in. Connect Discord, or untick Ranked match to play unranked.',CONTEXT_EXPIRED_OR_INVALID:'Community access expired. Use /play in the Discord channel to create a fresh launch.',LAUNCH_WRONG_DISCORD_USER:'Sign in with the Discord account that launched this game.',SESSION_REQUIRED:'Your session expired. Reload the page before continuing.',CSRF_REJECTED:'Your session changed. Reload the page before continuing.',STALE_MATCH:'The board changed in another request or tab. Resume to synchronize.'};return map[error.code]||error.message;}
-let identityStale=false,identitySeq=0;
+let identityStale=false,identitySeq=0,appliedSeq=0,identityPending=null;
 function refreshWhenIdle(){if(busy){identityStale=true;return;}identityStale=false;refreshIdentity().catch(()=>{/* Controls keep their last known state. */});}
 function setBusy(value){busy=value;$('new-game').disabled=value;renderBoard();if(!value&&identityStale)refreshWhenIdle();}
 function isLocal(){return match?.local===true;}
@@ -50,7 +50,14 @@ function syncControls(){const remote=$('mode').value==='jev',box=$('ranked'),sta
   $('ranked-note').textContent=state.ok?(box.checked?`Ranked match counts toward the leaderboard: ${RANKED_RULES}.`:'Tick Ranked match before New game to play for the leaderboard. Leave it unticked for unranked JEV practice.'):state.text;
   const action=$('ranked-action');action.hidden=!state.action;action.textContent=state.action?.label||'';action.onclick=state.action?.run||null;
   savePrefs();}
-async function refreshIdentity(){const seq=++identitySeq,{data}=await api('/api/me');if(seq!==identitySeq)return identity;identity=data;csrf=data.csrf;$('identity').textContent=data.user?.displayName||'Guest';$('human-name').textContent=data.user?.displayName||'You';$('login').hidden=!!data.user;$('logout').hidden=!data.user;$('login').disabled=!data.discordConfigured;$('login').title=data.discordConfigured?'Sign in with Discord':'Configure Discord client credentials on the server';$('operator-panel').hidden=!data.isAdmin;syncControls();return data;}
+function installIdentity(seq,data){appliedSeq=seq;identity=data;csrf=data.csrf;$('identity').textContent=data.user?.displayName||'Guest';$('human-name').textContent=data.user?.displayName||'You';$('login').hidden=!!data.user;$('logout').hidden=!data.user;$('login').disabled=!data.discordConfigured;$('login').title=data.discordConfigured?'Sign in with Discord':'Configure Discord client credentials on the server';$('operator-panel').hidden=!data.isAdmin;syncControls();return data;}
+/* Only the newest /api/me answer is installed, and an older request resolves with that newer answer (or its own if the newer one failed and nothing
+   newer was applied; a failed older request follows the newer one), never with the default identity, so init cannot choose a mode or resume a match before a valid identity and CSRF token exist. */
+function refreshIdentity(){return identityPending=fetchIdentity();}
+async function fetchIdentity(){const seq=++identitySeq;let data;
+  try{({data}=await api('/api/me'));}catch(error){if(seq===identitySeq)throw error;return identityPending;}
+  if(seq===identitySeq)return installIdentity(seq,data);
+  try{return await identityPending;}catch(error){if(seq>appliedSeq)return installIdentity(seq,data);throw error;}}
 function renderBoard(){
   const start=performance.now(),s=optimistic||match?.state||createInitialState(),humanDisc=match?.humanDisc||Number($('human-disc').value);
   const active=match?.status==='active'&&s.status==='active',myTurn=active&&s.toMove===humanDisc&&!busy&&!optimistic;

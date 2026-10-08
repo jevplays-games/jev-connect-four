@@ -15,7 +15,7 @@ test.before(async()=>{
   browser=await chromium.launch({headless:true,executablePath:process.env.CHROMIUM_PATH||undefined,args:['--no-sandbox']});
 });
 test.after(async()=>{await browser?.close();server?.kill('SIGTERM');});
-async function openPage({width=1440,height=1100,reducedMotion='no-preference',setup,waitUntil='networkidle'}={}){
+async function openPage({width=1440,height=1100,reducedMotion='no-preference',setup,waitUntil='networkidle',hash=''}={}){
   const context=await browser.newContext({viewport:{width,height},reducedMotion});
   const page=await context.newPage(),errors=[];page.on('pageerror',e=>errors.push(e.message));
   page.setDefaultTimeout(10000);
@@ -37,7 +37,7 @@ async function openPage({width=1440,height=1100,reducedMotion='no-preference',se
       .replace('<link rel="stylesheet" href="/game.css">',`<style>${await get('game.css')}</style>`);
     await page.setContent(html);await page.addScriptTag({content:mock+app});
     await page.addScriptTag({content:(await get('brand/brand.js')).replace(/\bexport (?=(?:const|function|async function|class))/g,'')});
-  }else await page.goto(origin,{waitUntil});
+  }else await page.goto(origin+hash,{waitUntil});
   await page.waitForFunction(()=>document.querySelector('#column-controls').children.length===7);
   return {page,context,errors};
 }
@@ -107,14 +107,18 @@ async function serverShaped(user){
     const result=await actor.call(url.pathname+url.search,request.method(),body,key?{'Idempotency-Key':key}:{});
     log.push({method:request.method(),path:url.pathname,status:result.status,requested:body,data:result.data});
     return route.fulfill({status:result.status,json:result.data});};
-  return {log,handle,close:()=>env.DB.close(),starts:()=>log.filter(entry=>entry.method==='POST'&&entry.path==='/api/matches')};
+  const create=async options=>(await actor.start({difficulty:'normal',humanDisc:1,...options})).data;
+  return {log,handle,create,close:()=>env.DB.close(),starts:()=>log.filter(entry=>entry.method==='POST'&&entry.path==='/api/matches')};
 }
 async function fixturePage(initial,options={}){
   let release;const hold=options.hold?new Promise(resolveHold=>{release=resolveHold;}):null;
   const shaped=options.serverShaped?await serverShaped(options.serverShaped.user):null;
-  const fixture={me:initial,posts:[],auth:0,meGets:0,release:()=>release?.(),shaped};
-  const opened=await openPage({...options,waitUntil:hold?'load':'networkidle',setup:async page=>{
-    await page.route('**/api/me',route=>{if(route.request().method()!=='GET')return route.continue();fixture.meGets++;return route.fulfill({json:fixture.me});});
+  const fixture={me:initial,posts:[],auth:0,meGets:0,heldMe:{},redeems:[],release:()=>release?.(),releaseMe:(n,body,status)=>fixture.heldMe[n]({body,status}),shaped};
+  const opened=await openPage({...options,waitUntil:hold||options.holdMe?'load':'networkidle',setup:async page=>{
+    await page.route('**/api/me',async route=>{if(route.request().method()!=='GET')return route.continue();const n=++fixture.meGets;
+      if(n<=(options.holdMe||0)){const answer=await new Promise(resolveMe=>{fixture.heldMe[n]=resolveMe;});return route.fulfill({status:answer.status||200,json:answer.body});}
+      return route.fulfill({json:fixture.me});});
+    await page.route('**/api/context/redeem',route=>{fixture.redeems.push({csrf:route.request().headers()['x-csrf-token'],meGets:fixture.meGets});return route.fulfill({json:{requiresLogin:false}});});
     await page.route(/\/api\/matches(\/|\?|$)/,async route=>{const request=route.request(),path=new URL(request.url()).pathname;
       if(shaped){if(request.method()==='POST'&&path==='/api/matches')fixture.posts.push(request.postDataJSON());return shaped.handle(route);}
       if(request.method()!=='POST'||path!=='/api/matches')return route.continue();
@@ -311,4 +315,63 @@ test('fixture (server-shaped): an ordinary unranked start succeeds for a guest a
   assert.equal(await page.locator('#turn-label').textContent(),'Your turn');assert.ok(await columnsEnabled(page)>0);
   await playsOneMove(page,shaped);
   assert.deepEqual(errors,[]);await context.close();shaped.close();
+});
+// F3 (Astra c4-review-02): the first /api/me is held, the tab is returned to, and the two identity answers arrive in each order.
+// Offline fixture evidence: /api/me and the signed-in user are fixtures; /api/matches is answered by the real Worker handler.
+const arrived=async(page,fixture,n)=>{for(const until=Date.now()+8000;fixture.meGets<n;){if(Date.now()>until)throw new Error(`identity request ${n} never arrived`);await page.waitForTimeout(50);}};
+const visibleReturn=page=>page.evaluate(()=>document.dispatchEvent(new Event('visibilitychange')));
+const named=(displayName,extra={})=>meFixture({user:{...player,displayName},...extra});
+async function heldBootstrap(options={}){
+  const opened=await fixturePage(meFixture(),{serverShaped:options.shaped===false?undefined:{user:true},holdMe:2,hash:options.hash});
+  const {page,fixture}=opened;await arrived(page,fixture,1);
+  const match=fixture.shaped?await fixture.shaped.create({ranked:true}):null;
+  await visibleReturn(page);await arrived(page,fixture,2);
+  return {...opened,match,older:id=>named('Older Player',{activeMatchId:id,csrf:'csrf-older'}),newer:id=>named('Newer Player',{activeMatchId:id,csrf:'csrf-newer'})};
+}
+const matchReads=(shaped,id)=>shaped.log.filter(entry=>entry.method==='GET'&&entry.path===`/api/matches/${id}`);
+async function assertResumedOnce({page,fixture,match,errors}){
+  await page.waitForFunction(()=>document.getElementById('verification-badge').textContent==='RANKED · IN PROGRESS');
+  await page.waitForTimeout(300);
+  assert.equal(matchReads(fixture.shaped,match.id).length,1,'the existing server match is read exactly once');
+  assert.equal(fixture.shaped.starts().length,0,'no match was created');assert.equal(fixture.posts.length,0);
+  assert.equal(await page.locator('#mode').inputValue(),'jev','JEV mode, not the default local fallback');
+  assert.equal((await ranked(page)).ariaDisabled,'false','ranked is available to the signed-in player');
+  assert.equal(await page.locator('#identity').textContent(),'Newer Player','the newest identity wins');
+  assert.equal(await page.locator('#resign').isDisabled(),false);
+  assert.deepEqual(errors,[]);
+}
+test('fixture (server-shaped): a tab return during the first identity request, older answer first, waits for the newest identity before resuming the match',real,async()=>{
+  const boot=await heldBootstrap(),{page,fixture,match}=boot;
+  fixture.releaseMe(1,boot.older(match.id));await page.waitForTimeout(400);
+  assert.equal(await page.locator('#identity').textContent(),'Guest','the superseded answer was not installed');
+  assert.equal(fixture.shaped.log.length,0,'nothing was read or created before the newest identity arrived');assert.equal(fixture.posts.length,0);
+  fixture.releaseMe(2,boot.newer(match.id));
+  await assertResumedOnce(boot);assert.equal(fixture.meGets,2);await boot.context.close();fixture.shaped.close();
+});
+test('fixture (server-shaped): a tab return during the first identity request, newest answer first, is not overwritten by the older answer',real,async()=>{
+  const boot=await heldBootstrap(),{page,fixture,match}=boot;
+  fixture.releaseMe(2,boot.newer(match.id));await page.waitForTimeout(400);
+  assert.equal(await page.locator('#identity').textContent(),'Newer Player');
+  assert.equal(fixture.shaped.log.length,0,'bootstrap still waits for its own request');assert.equal(fixture.posts.length,0);
+  fixture.releaseMe(1,boot.older(match.id));
+  await assertResumedOnce(boot);assert.equal(fixture.meGets,2);await boot.context.close();fixture.shaped.close();
+});
+test('fixture (server-shaped): a failed first identity request follows the newer one instead of falling back to local practice',real,async()=>{
+  const boot=await heldBootstrap(),{page,fixture,match}=boot;
+  fixture.releaseMe(1,{error:'UNAVAILABLE'},503);await page.waitForTimeout(400);
+  assert.equal(fixture.shaped.log.length,0);assert.equal(fixture.posts.length,0);
+  assert.equal(await page.locator('#notice').isHidden(),true,'no local-practice fallback notice while the newer request is pending');
+  fixture.releaseMe(2,boot.newer(match.id));
+  await assertResumedOnce(boot);await boot.context.close();fixture.shaped.close();
+});
+test('fixture: a launch ticket is redeemed once, and only with the newest identity CSRF token',real,async()=>{
+  const boot=await heldBootstrap({shaped:false,hash:'#launch=ticket-1'}),{page,fixture,errors}=boot;
+  fixture.me=boot.newer(null);
+  fixture.releaseMe(1,boot.older(null));await page.waitForTimeout(400);
+  assert.equal(fixture.redeems.length,0,'no redemption while only a superseded identity has arrived');
+  fixture.releaseMe(2,boot.newer(null));
+  for(const until=Date.now()+8000;fixture.redeems.length<1;){if(Date.now()>until)throw new Error('the launch ticket was never redeemed');await page.waitForTimeout(50);}
+  await settled(page,fixture);
+  assert.equal(fixture.redeems.length,1);assert.equal(fixture.redeems[0].csrf,'csrf-newer');assert.equal(fixture.redeems[0].meGets,2);
+  assert.deepEqual(errors,[]);await boot.context.close();
 });
