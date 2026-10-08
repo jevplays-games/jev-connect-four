@@ -30,7 +30,21 @@ cp .env.example .env
 npm start
 ```
 
-Set Discord credentials only after configuring the redirect URI and application. Guest JEV play does not require Discord. Ranked play does. The local heuristic is never represented as a model call or silently used to finish an official match.
+Set Discord credentials only after configuring the redirect URI and application. Guest JEV play does not require Discord. Ranked play does. The local heuristic is never represented as a model call or silently used to finish a ranked match.
+
+### Ranked match
+
+**Ranked match** (beside New game) puts a game on the leaderboard. It is available only to a Discord-signed-in player using the **JEV** opponent on a server that has both configured; the server enforces the same rules whatever the page shows. The page always says why the box is unavailable and what to do next:
+
+| Situation | Guidance shown |
+|---|---|
+| Server has no `TYPESAFE_API_KEY` | Unavailable: the operator must add the key. Only local practice runs. |
+| Opponent is Local practice | Ranked needs JEV and a Discord account; **Switch to JEV** button. |
+| JEV, guest, Discord configured | Needs a Discord account; **Connect Discord** button. |
+| JEV, guest, Discord not configured | Unavailable: the operator must configure Discord. Unranked JEV practice works. |
+| JEV, signed in | Tick the box before **New game**; the rules (server-assigned side, no undo, 24-hour deadline, resignation is a loss) are shown. |
+
+The box stays keyboard-focusable while unavailable (`aria-disabled`), its reason is its accessible description, and trying to tick it announces the reason. The page never starts a ranked match on its own: the automatic first game on page load is always unranked, so a ranked game needs an explicit tick and New game. Sign-in, sign-out, mode changes, returning to the tab and restoring a cached page all refresh the box; a refresh that is due while a game request is still pending waits until it settles (it never resends the game request). Identity requests never overlap: a request without a session cookie makes the server create a guest session with its own `Set-Cookie` and CSRF token, so two at once could leave the browser with one session's cookie and the page with the other's token. A refresh asked for while one is in flight is sent after it (several share one trailing request), and startup (mode choice, resuming an active server match, redeeming a launch ticket) waits for the newest answer, so a tab return during page load cannot leave the page in local practice, send a ticket without its CSRF token, or start a game the server rejects with `CSRF_REJECTED`. Only that read-only identity request has a ten-second deadline: a stalled one fails (startup follows the next identity request if one is queued, otherwise it continues in local practice and the Ranked match note says the status is unknown, with a Check again button) and a later refresh is sent normally. Game and provider requests have no client deadline and are never retried or abandoned by it. The reason and its button stay visible wherever the box is visible, including short landscape screens; only the picture-in-picture frame hides the box and its guidance together.
 
 ## Included
 
