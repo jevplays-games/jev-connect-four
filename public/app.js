@@ -8,7 +8,7 @@ const ms=n=>Number.isFinite(n)?n>=1000?`${fmt(n/1000,2)} s`:`${fmt(n,0)} ms`:'�
 const make=(tag,className,text)=>{const e=document.createElement(tag);if(className)e.className=className;if(text!==undefined)e.textContent=text;return e;};
 function readStorage(key,fallback){try{return JSON.parse(localStorage.getItem(key))??fallback;}catch{return fallback;}}
 function store(key,value){try{localStorage.setItem(key,JSON.stringify(value));}catch{notice('Browser storage is unavailable or full. The current game still works, but local history may not persist.');}}
-let identity={user:null,contexts:[],jevConfigured:false,discordConfigured:false},csrf='',match=null,localExport=null;
+let identity={user:null,contexts:[],jevConfigured:false,discordConfigured:false,unknown:true},csrf='',match=null,localExport=null;
 let busy=false,selectedColumn=3,optimistic=null,requestId=0,liveAnalysis=null,leaderCursor=null,leaderRows=[];
 let clientPerformance={longTaskCount:0,longTaskDurationMs:0,hiddenMs:0},hiddenStarted=null;
 try{new PerformanceObserver(list=>{if($('telemetry-consent').checked&&match&&!isLocal()){for(const e of list.getEntries()){clientPerformance.longTaskCount++;clientPerformance.longTaskDurationMs+=e.duration;}}}).observe({type:'longtask',buffered:false});}catch{/* Browser does not expose long-task measurements. */}
@@ -21,8 +21,8 @@ worker.onerror=()=>{for(const job of workerJobs.values()){clearTimeout(job.timer
 function askLocal(state,difficulty){return new Promise((resolve,reject)=>{const id=++requestId,timer=setTimeout(()=>{workerJobs.delete(id);reject(new Error('Local opponent exceeded its time budget.'));},15000);workerJobs.set(id,{resolve,reject,timer});worker.postMessage({id,state,difficulty});});}
 function notice(text,info=false){$('notice').textContent=text;$('notice').classList.toggle('info',info);$('notice').hidden=!text;}
 let bearer=null; // set only inside a Discord Activity, where cookies are not sent
-async function api(path,{method='GET',body,key}={}){
-  const start=performance.now(),response=await fetch(path,{method,credentials:'same-origin',headers:{...(bearer?{Authorization:`Bearer ${bearer}`}:{}),...(method==='GET'?{}:{'Content-Type':'application/json','X-CSRF-Token':csrf,...(key?{'Idempotency-Key':key}:{})})},...(body!==undefined?{body:JSON.stringify(body)}:{})});
+async function api(path,{method='GET',body,key,signal}={}){
+  const start=performance.now(),response=await fetch(path,{method,credentials:'same-origin',...(signal?{signal}:{}),headers:{...(bearer?{Authorization:`Bearer ${bearer}`}:{}),...(method==='GET'?{}:{'Content-Type':'application/json','X-CSRF-Token':csrf,...(key?{'Idempotency-Key':key}:{})})},...(body!==undefined?{body:JSON.stringify(body)}:{})});
   const text=await response.text();let data;try{data=JSON.parse(text);}catch{throw new Error('The server returned an unreadable response.');}
   if(!response.ok){const error=new Error(data.error||`Request failed (${response.status})`);error.code=data.error;error.details=data.details;error.status=response.status;throw error;}
   return {data,latency:performance.now()-start};
@@ -36,6 +36,7 @@ function savePrefs(){store('c4-preferences',{difficulty:$('difficulty').value,mo
 const RANKED_RULES='server-assigned starting side · no undo · 24-hour deadline · resignation is a loss';
 function rankedState(){
   const remote=$('mode').value==='jev';
+  if(identity.unknown)return {ok:false,text:'Ranked match status is unknown: the server did not answer the sign-in check, so the page cannot tell whether it is available. Local practice works. Check again, or return to this tab.',action:{label:'Check again',run(){refreshWhenIdle();}}};
   if(!identity.jevConfigured)return {ok:false,text:'Ranked match is unavailable: this server has no JEV connection configured, so only local practice can run. The server operator must add the TypeSafe key.'};
   if(!remote)return {ok:false,text:'Ranked match needs the JEV opponent and a Discord account. Local practice stays on this device and never enters a leaderboard.',action:{label:'Switch to JEV',run(){$('mode').value='jev';syncControls();$('ranked').focus();}}};
   if(!identity.user)return identity.discordConfigured
@@ -60,7 +61,13 @@ function refreshIdentity(){
   if(!identityRun){const run=identityRun=loadIdentity().finally(()=>{identityRun=null;});
     return run.then(data=>identityNext||data,error=>{if(identityNext)return identityNext;throw error;});}
   return identityNext||(identityNext=identityRun.then(()=>{},()=>{}).then(()=>{identityNext=null;return refreshIdentity();}));}
-async function loadIdentity(){return installIdentity((await api('/api/me')).data);}
+/* Only this read-only GET has a deadline, so one stalled /api/me cannot hold every later refresh (login, logout, config) behind it. A game or provider request is never
+   aborted, retried or given a deadline here: its outcome may be unknown and is recovered from the server, not guessed. */
+const IDENTITY_TIMEOUT_MS=10000;
+async function loadIdentity(){const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),IDENTITY_TIMEOUT_MS);
+  try{return installIdentity((await api('/api/me',{signal:controller.signal})).data);}
+  catch(error){if(controller.signal.aborted)throw Object.assign(new Error('The server did not answer the identity check in time.'),{code:'IDENTITY_TIMEOUT'});throw error;}
+  finally{clearTimeout(timer);}}
 function renderBoard(){
   const start=performance.now(),s=optimistic||match?.state||createInitialState(),humanDisc=match?.humanDisc||Number($('human-disc').value);
   const active=match?.status==='active'&&s.status==='active',myTurn=active&&s.toMove===humanDisc&&!busy&&!optimistic;

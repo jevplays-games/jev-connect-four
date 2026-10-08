@@ -320,7 +320,7 @@ test('fixture (server-shaped): an ordinary unranked start succeeds for a guest a
 // F3 (Astra c4-review-02): the first /api/me is held while the tab is returned to. /api/me is never in flight twice (a cookie-less request makes the server
 // create a session with its own Set-Cookie and CSRF token), so the second request is sent only after the first is answered, and startup waits for the newest one.
 // Offline fixture evidence: /api/me and the signed-in user are fixtures; /api/matches is answered by the real Worker handler.
-const arrived=async(page,fixture,n)=>{for(const until=Date.now()+8000;fixture.meGets<n;){if(Date.now()>until)throw new Error(`identity request ${n} never arrived`);await page.waitForTimeout(50);}};
+const arrived=async(page,fixture,n,within=8000)=>{for(const until=Date.now()+within;fixture.meGets<n;){if(Date.now()>until)throw new Error(`identity request ${n} never arrived`);await page.waitForTimeout(50);}};
 const visibleReturn=page=>page.evaluate(()=>document.dispatchEvent(new Event('visibilitychange')));
 const named=(displayName,extra={})=>meFixture({user:{...player,displayName},...extra});
 async function heldBootstrap(options={}){
@@ -379,33 +379,40 @@ test('fixture: a launch ticket is redeemed once, and only with the newest identi
   assert.deepEqual(errors,[]);await boot.context.close();
 });
 // Cold guest (Sol's source-inspection concern): with no session cookie every /api/me makes the real handler create a guest session and answer with its own Set-Cookie and
-// CSRF token. Here /api/me AND /api/matches are both answered by the real Worker handler (in-memory database, offline stub provider, no network, no key), and the handler
-// verifies the CSRF token the page actually sends against the cookie the browser actually kept. Offline fixture evidence: the cookie jar is modelled by this test (the
-// handler's Set-Cookie is applied when the response is delivered, and the jar is sent when a request is made) instead of by the browser, and the origin header is the handler's own.
-// If the page sent two cold requests and the older answer landed last, the page would hold the newest CSRF token with the older session's cookie and the game POST would be CSRF_REJECTED.
-async function coldGuest(){
+// CSRF token. /api/me AND /api/matches are both answered by the real Worker handler (in-memory database, offline stub provider, no network, no key), and the handler
+// verifies the CSRF token the page actually sends against the cookie it is given. If the page sent two cold requests and the older answer landed last, the page would hold
+// the newest CSRF token with the older session's cookie and the game POST would be CSRF_REJECTED. Two evidence classes, kept apart:
+//  - browser cookies: Chromium itself stores the handler's Set-Cookie (it is passed through route.fulfill) and the Cookie header handed to the handler is read from
+//    Chromium's own jar (context.cookies) when the request is made. The test keeps no jar and never calls addCookies.
+//  - modelled jar: a jar owned by this test stands in for the browser (Set-Cookie is applied on delivery, the jar is sent on request). NOT browser cookie evidence.
+// In both, the handler sees the browser's x-csrf-token; the Origin header is the browser's when Playwright reports one and the handler's own origin otherwise (originFromBrowser
+// is recorded). Raw cookie and CSRF values are never logged or put in an assertion message.
+async function coldGuest({browserCookies=false}={}){
   const {environment}=await import('./helpers.js');
-  const worker=(await import('../server/worker.js')).default;
+  const worker=(await import('../server/worker.js')).default,{rows}=await import('../server/db.js');
   const env=environment({APP_ORIGIN:origin}),log=[],gates={};
-  const state={jar:'',meGets:0,inFlight:0,maxInFlight:0};
+  const state={jar:'',context:null,issued:[],meGets:0,inFlight:0,maxInFlight:0};
   const gate=n=>gates[n]??=(()=>{let open;const promise=new Promise(resolveGate=>{open=resolveGate;});return {promise,open};})();
+  const sessionCookies=async()=>(await state.context.cookies(origin)).filter(cookie=>cookie.name==='jev-local');
   const handle=async route=>{
-    const request=route.request(),url=new URL(request.url()),sent=state.jar,headers=request.headers();
+    const request=route.request(),url=new URL(request.url()),headers=request.headers();
     const isMe=url.pathname==='/api/me'&&request.method()==='GET',n=isMe?++state.meGets:0;
     if(isMe){state.inFlight++;state.maxInFlight=Math.max(state.maxInFlight,state.inFlight);}
-    const init={method:request.method(),headers:{...(sent?{cookie:sent}:{}),...(request.method()==='GET'?{}:{origin:env.APP_ORIGIN,'x-csrf-token':headers['x-csrf-token']||'','content-type':'application/json',...(headers['idempotency-key']?{'idempotency-key':headers['idempotency-key']}:{})})},...(request.postData()?{body:request.postData()}:{})};
+    const sent=browserCookies?(await sessionCookies()).map(cookie=>`${cookie.name}=${cookie.value}`).join('; '):state.jar;
+    const init={method:request.method(),headers:{...(sent?{cookie:sent}:{}),...(request.method()==='GET'?{}:{origin:headers.origin||env.APP_ORIGIN,'x-csrf-token':headers['x-csrf-token']||'','content-type':'application/json',...(headers['idempotency-key']?{'idempotency-key':headers['idempotency-key']}:{})})},...(request.postData()?{body:request.postData()}:{})};
     const tasks=[],response=await worker.fetch(new Request(env.APP_ORIGIN+url.pathname+url.search,init),env,{waitUntil:p=>tasks.push(p)});await Promise.all(tasks);
     const set=response.headers.get('set-cookie'),text=await response.text();let data;try{data=JSON.parse(text);}catch{data={};}
     if(isMe&&n<=2)await gate(n).promise;
-    if(set)state.jar=/Max-Age=0/i.test(set)?'':set.split(';')[0];
+    if(set&&!/Max-Age=0/i.test(set))state.issued.push(set.split(';')[0]);
+    if(set&&!browserCookies)state.jar=/Max-Age=0/i.test(set)?'':set.split(';')[0];
     if(isMe)state.inFlight--;
-    log.push({method:request.method(),path:url.pathname,status:response.status,sentCookie:!!sent,issuedCookie:!!set,error:data.error,requested:request.postData()?JSON.parse(request.postData()):undefined,data});
-    return route.fulfill({status:response.status,contentType:'application/json',body:text});};
-  return {log,state,handle,release:n=>gate(n).open(),close:()=>env.DB.close(),starts:()=>log.filter(entry=>entry.method==='POST'&&entry.path==='/api/matches')};
+    log.push({method:request.method(),path:url.pathname,status:response.status,sentCookie:!!sent,issuedCookie:!!set,originFromBrowser:!!headers.origin,error:data.error,requested:request.postData()?JSON.parse(request.postData()):undefined,data});
+    return route.fulfill({status:response.status,headers:{'content-type':'application/json',...(browserCookies&&set?{'set-cookie':set}:{})},body:text});};
+  return {log,state,handle,sessionCookies,release:n=>gate(n).open(),close:()=>env.DB.close(),matchCount:async()=>(await rows(env,'SELECT id FROM matches')).length,starts:()=>log.filter(entry=>entry.method==='POST'&&entry.path==='/api/matches')};
 }
-test('fixture (real handler, modelled cookie jar): a cold guest who returns to the tab during the first /api/me keeps one session and starts an ordinary unranked game',real,async()=>{
-  const cold=await coldGuest();
-  const {page,context,errors}=await openPage({waitUntil:'load',setup:p=>p.route(/\/api\/(me|matches)(\/|\?|$)/,cold.handle)});
+async function coldGuestScenario({browserCookies}){
+  const cold=await coldGuest({browserCookies});
+  const {page,context,errors}=await openPage({waitUntil:'load',setup:p=>{cold.state.context=p.context();return p.route(/\/api\/(me|matches)(\/|\?|$)/,cold.handle);}});
   for(const until=Date.now()+8000;cold.state.meGets<1;){if(Date.now()>until)throw new Error('the first identity request never arrived');await page.waitForTimeout(50);}
   await visibleReturn(page);await page.waitForTimeout(400);
   // A page that overlapped its requests would have two in flight now; release the newest answer first, the order that breaks cookie and CSRF agreement.
@@ -418,9 +425,43 @@ test('fixture (real handler, modelled cookie jar): a cold guest who returns to t
   assert.deepEqual(cold.log.filter(entry=>entry.path==='/api/me').map(entry=>entry.sentCookie),[false,true],'the second identity request carried the first one\'s cookie');
   assert.equal(cold.state.meGets,2,'the tab return became one trailing identity request');assert.equal(cold.state.maxInFlight,1,'/api/me was never in flight twice');
   await page.waitForFunction(()=>!document.getElementById('new-game').disabled);
-  assert.equal(await page.locator('#verification-badge').textContent(),'SERVER PRACTICE');
+  assert.equal(await page.locator('#verification-badge').textContent(),'SERVER PRACTICE','a server game, not a local replacement');
+  assert.equal(await page.locator('#mode').inputValue(),'jev');
+  assert.equal(cold.starts().length,1,'one start request');assert.equal(await cold.matchCount(),1,'one server match exists: no extra allocation');
   assert.equal(await page.locator('#turn-label').textContent(),'Your turn');assert.ok(await columnsEnabled(page)>0);
+  if(browserCookies){
+    const held=await cold.sessionCookies();
+    assert.equal(held.length,1,'Chromium holds exactly one session cookie');assert.ok(held[0].httpOnly,'it is the HttpOnly cookie the handler set');
+    assert.ok(`${held[0].name}=${held[0].value}`===cold.state.issued[0],'and it is the one the handler issued');
+  }
   await playsOneMove(page,cold);
   assert.equal(cold.log.filter(entry=>entry.error==='CSRF_REJECTED').length,0,'nor was the move rejected');
   assert.deepEqual(errors,[]);await context.close();cold.close();
+}
+test('fixture (real handler, BROWSER cookies: Chromium applies the handler\'s Set-Cookie and supplies the Cookie header): a cold guest who returns to the tab during the first /api/me keeps one session and starts an ordinary unranked game',real,()=>coldGuestScenario({browserCookies:true}));
+test('fixture (real handler, MODELLED cookie jar owned by the test, not browser cookie evidence): the same cold-guest ordering keeps one session and starts an ordinary unranked game',real,()=>coldGuestScenario({browserCookies:false}));
+// Identity read deadline (10 s, only the read-only /api/me GET). A stalled read fails, it never leaves a later refresh blocked, and startup still waits for an accepted identity.
+// Offline fixture evidence: /api/me is a route that is never answered; /api/matches is the real Worker handler. The two cases each wait out the real 10 s deadline.
+const DEADLINE_WAIT=20000;
+test('fixture (server-shaped): a stalled first identity read times out, and startup follows the queued read and still waits for an accepted identity',real,async()=>{
+  const boot=await heldBootstrap(),{page,fixture,match}=boot;
+  await arrived(page,fixture,2,DEADLINE_WAIT);// request 1 is never answered; the deadline fails it and the queued read goes out
+  await page.waitForTimeout(400);
+  assert.equal(fixture.shaped.log.length,0,'nothing was read or created before an identity was accepted');assert.equal(fixture.posts.length,0);
+  assert.equal(await page.locator('#identity').textContent(),'Guest','the stalled read installed nothing');
+  fixture.releaseMe(2,boot.newer(match.id));
+  await assertResumedOnce(boot);assert.equal(fixture.meGets,2);await boot.context.close();fixture.shaped.close();
+});
+test('fixture: a stalled identity read with nothing queued says the status is unknown, continues in local practice, and a later refresh still goes out',real,async()=>{
+  const {page,context,fixture,errors}=await fixturePage(meFixture(),{holdMe:1});// read 1 is never answered, later reads are
+  for(const until=Date.now()+DEADLINE_WAIT;!(await ranked(page)).note.includes('status is unknown');){if(Date.now()>until)throw new Error('the deadline never produced the unknown state');await page.waitForTimeout(100);}
+  let state=await ranked(page);assert.equal(state.ariaDisabled,'true');assert.equal(state.action,'Check again');assert.doesNotMatch(state.note,/no JEV connection/,'a failed read is not reported as a missing JEV key');
+  assert.equal(fixture.meGets,1);assert.equal(await page.locator('#verification-badge').textContent(),'LOCAL PRACTICE');assert.equal(await page.locator('#turn-label').textContent(),'Your turn','a local game started')
+  assert.ok(await columnsEnabled(page)>0,'local practice is playable');assert.equal(fixture.posts.length,0,'no server game was requested on an unknown identity');
+  await page.locator('#ranked-action').focus();await page.keyboard.press('Enter');// keyboard-operable retry
+  await arrived(page,fixture,2);
+  await page.waitForFunction(()=>!document.getElementById('ranked-note').textContent.includes('status is unknown'));
+  state=await ranked(page);assert.equal(state.action,'Switch to JEV','the accepted identity replaced the unknown state');
+  await visibleReturn(page);await arrived(page,fixture,3);// a tab return refreshes as usual afterwards
+  assert.deepEqual(errors,[]);await context.close();
 });
