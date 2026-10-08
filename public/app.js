@@ -27,12 +27,27 @@ async function api(path,{method='GET',body,key}={}){
   if(!response.ok){const error=new Error(data.error||`Request failed (${response.status})`);error.code=data.error;error.details=data.details;error.status=response.status;throw error;}
   return {data,latency:performance.now()-start};
 }
-function errorMessage(error){const map={JEV_NOT_CONFIGURED:'JEV is not configured on this server. Local practice remains available.',DISCORD_NOT_CONFIGURED:'Discord is not configured on this server.',RATE_LIMITED:'The server usage limit was reached. Local practice remains available.',ACTIVE_RANKED_MATCH:'You have an active official match. Resume or resign that match before starting another.',CONTEXT_EXPIRED_OR_INVALID:'Community access expired. Use /play in the Discord channel to create a fresh launch.',LAUNCH_WRONG_DISCORD_USER:'Sign in with the Discord account that launched this game.',SESSION_REQUIRED:'Your session expired. Reload the page before continuing.',CSRF_REJECTED:'Your session changed. Reload the page before continuing.',STALE_MATCH:'The board changed in another request or tab. Resume to synchronize.'};return map[error.code]||error.message;}
+function errorMessage(error){const map={JEV_NOT_CONFIGURED:'JEV is not configured on this server. Local practice remains available.',DISCORD_NOT_CONFIGURED:'Discord is not configured on this server.',RATE_LIMITED:'The server usage limit was reached. Local practice remains available.',ACTIVE_RANKED_MATCH:'You have an active ranked match. Resume or resign that match before starting another.',DISCORD_LOGIN_REQUIRED:'Ranked matches need a Discord sign-in. Connect Discord, or untick Ranked match to play unranked.',CONTEXT_EXPIRED_OR_INVALID:'Community access expired. Use /play in the Discord channel to create a fresh launch.',LAUNCH_WRONG_DISCORD_USER:'Sign in with the Discord account that launched this game.',SESSION_REQUIRED:'Your session expired. Reload the page before continuing.',CSRF_REJECTED:'Your session changed. Reload the page before continuing.',STALE_MATCH:'The board changed in another request or tab. Resume to synchronize.'};return map[error.code]||error.message;}
 function setBusy(value){busy=value;$('new-game').disabled=value;renderBoard();}
 function isLocal(){return match?.local===true;}
 function savePrefs(){store('c4-preferences',{difficulty:$('difficulty').value,mode:$('mode').value,analysis:$('show-analysis').checked,telemetry:$('telemetry-consent').checked});}
-function syncControls(){const remote=$('mode').value==='jev';$('ranked').disabled=!remote||!identity.user;$('human-disc').disabled=remote&&$('ranked').checked;
-  $('ranked-note').textContent=!remote?'Local practice stays on this device and never enters a leaderboard.':$('ranked').checked?'Official: server-assigned starting side · no undo · 24-hour deadline · resignation is a loss.':'Server-controlled JEV practice. Sign in and select Official match before starting to qualify for leaderboards.';savePrefs();}
+const RANKED_RULES='server-assigned starting side · no undo · 24-hour deadline · resignation is a loss';
+function rankedState(){
+  const remote=$('mode').value==='jev';
+  if(!identity.jevConfigured)return {ok:false,text:'Ranked match is unavailable: this server has no JEV connection configured, so only local practice can run. The server operator must add the TypeSafe key.'};
+  if(!remote)return {ok:false,text:'Ranked match needs the JEV opponent and a Discord account. Local practice stays on this device and never enters a leaderboard.',action:{label:'Switch to JEV',run(){$('mode').value='jev';syncControls();$('ranked').focus();}}};
+  if(!identity.user)return identity.discordConfigured
+    ?{ok:false,text:'Ranked match counts toward the leaderboard but needs a Discord account. Guests play unranked.',action:{label:'Connect Discord',run(){location.href='/api/auth/discord';}}}
+    :{ok:false,text:'Ranked match is unavailable: this server has no Discord sign-in configured, and ranked results need a Discord account. Unranked JEV practice works.'};
+  return {ok:true};
+}
+function syncControls(){const remote=$('mode').value==='jev',box=$('ranked'),state=rankedState();
+  if(!state.ok)box.checked=false;
+  box.setAttribute('aria-disabled',String(!state.ok));
+  $('human-disc').disabled=remote&&box.checked;
+  $('ranked-note').textContent=state.ok?(box.checked?`Ranked match counts toward the leaderboard: ${RANKED_RULES}.`:'Tick Ranked match before New game to play for the leaderboard. Leave it unticked for unranked JEV practice.'):state.text;
+  const action=$('ranked-action');action.hidden=!state.action;action.textContent=state.action?.label||'';action.onclick=state.action?.run||null;
+  savePrefs();}
 async function refreshIdentity(){const {data}=await api('/api/me');identity=data;csrf=data.csrf;$('identity').textContent=data.user?.displayName||'Guest';$('human-name').textContent=data.user?.displayName||'You';$('login').hidden=!!data.user;$('logout').hidden=!data.user;$('login').disabled=!data.discordConfigured;$('login').title=data.discordConfigured?'Sign in with Discord':'Configure Discord client credentials on the server';$('operator-panel').hidden=!data.isAdmin;syncControls();return data;}
 function renderBoard(){
   const start=performance.now(),s=optimistic||match?.state||createInitialState(),humanDisc=match?.humanDisc||Number($('human-disc').value);
@@ -52,7 +67,7 @@ function renderBoard(){
   $('move-count').textContent=String(s.ply).padStart(2,'0');
   $('opponent-name').textContent=isLocal()||!match?'Local practice':'JEV';$('opponent-subtitle').textContent=isLocal()||!match?'Not JEV':'With tactical safeguards';
   $('side-label').textContent=humanDisc===1?'You move first':'Opponent moves first';
-  $('verification-badge').textContent=!match||isLocal()?'LOCAL PRACTICE':match.eligible?'VERIFIED RESULT':match.status==='interrupted'?'UNRANKED · INTERRUPTED':match.ranked?'OFFICIAL · IN PROGRESS':'SERVER PRACTICE';
+  $('verification-badge').textContent=!match||isLocal()?'LOCAL PRACTICE':match.eligible?'VERIFIED RESULT':match.status==='interrupted'?'UNRANKED · INTERRUPTED':match.ranked?'RANKED · IN PROGRESS':'SERVER PRACTICE';
   $('resign').disabled=busy||!match||match.status!=='active';$('continue-local').hidden=match?.status!=='interrupted';
   $('resume').hidden=!match||isLocal()||!['active','thinking'].includes(match.status);$('resume').disabled=busy;
   $('board-help').textContent=match?.state.lastMove?`${match.state.lastMove.disc===humanDisc?'Human':'Opponent'} placed a disc in column ${match.state.lastMove.column+1}, row ${match.state.lastMove.row+1}. ${status}.`:'Choose a column. Keyboard: 1–7 or arrow keys + Enter.';
@@ -106,11 +121,11 @@ async function localOpponent(){if(!match||!isLocal()||match.state.status!=='acti
   catch(error){notice(error.message);}finally{setBusy(false);}
 }
 async function startGame(){if(busy)return;notice('');clearTimeout(pollTimer);
-  if(match?.ranked&&['active','thinking'].includes(match.status)){notice('An official match is still active. Resume or resign it before starting another game.');return;}
+  if(match?.ranked&&['active','thinking'].includes(match.status)){notice('A ranked match is still active. Resume or resign it before starting another game.');return;}
   setBusy(true);
   try{if($('mode').value==='local'){createLocal();renderDecision();setBusy(false);await localOpponent();return;}
     const {data}=await api('/api/matches',{method:'POST',key:uid(),body:{gameId:'connect-four',difficulty:$('difficulty').value,
-      humanDisc:Number($('human-disc').value),ranked:$('ranked').checked,contextId:identity.contexts[0]?.id}});
+      humanDisc:Number($('human-disc').value),ranked:rankedState().ok&&$('ranked').checked,contextId:identity.contexts[0]?.id}});
     match=data;localExport=null;store('c4-active-server-match',match.id);renderDecision();checkRemoteStatus();
   }catch(error){notice(errorMessage(error));if(error.details?.matchId){store('c4-active-server-match',error.details.matchId);await resumeMatch(error.details.matchId);}}
   finally{setBusy(false);}
@@ -133,7 +148,7 @@ async function resumeMatch(id=match?.id||identity.activeMatchId||readStorage('c4
   if(data.status==='active'&&data.state.toMove!==data.humanDisc){data=(await api(`/api/matches/${id}/commands`,{method:'POST',key:uid(),body:{type:'resume'}})).data;match=data;}
   $('mode').value='jev';$('difficulty').value=match.difficulty;syncControls();renderDecision();checkRemoteStatus();
   }catch(error){notice(errorMessage(error));}finally{setBusy(false);}}
-async function resign(){if(!match||busy||match.status!=='active')return;if(!confirm('Resign this match? Official matches record a loss.'))return;
+async function resign(){if(!match||busy||match.status!=='active')return;if(!confirm('Resign this match? Ranked matches record a loss.'))return;
   if(isLocal()){match.status='adjudicated';match.result='loss';match.adjudication='resigned';match.finishedAt=Date.now();localEvent('match.adjudicated',{result:'loss',adjudication:'resigned'});persistLocal();renderBoard();return;}
   setBusy(true);try{match=(await api(`/api/matches/${match.id}/commands`,{method:'POST',key:uid(),body:{type:'resign',expectedRevision:match.revision,expectedStateHash:match.stateHash}})).data;renderDecision();}catch(error){notice(errorMessage(error));}finally{setBusy(false);}}
 function page(name){currentPage=name;for(const el of document.querySelectorAll('.page')){el.hidden=el.id!==`page-${name}`;el.classList.toggle('active',!el.hidden);}for(const b of document.querySelectorAll('[data-page]'))b.classList.toggle('active',b.dataset.page===name);
@@ -143,7 +158,7 @@ async function currentExport(){if(!match)throw new Error('Start a match first.')
 async function loadAnalytics(){try{let summary,tables=null,audit=null;
     if($('analytics-scope').value==='mine'){const {data}=await api('/api/analytics/me');summary=data.summary;$('analytics-coverage').textContent=`Server matches: ${data.sample.included} of ${data.sample.total}. ${data.sample.limited?'Limited to the most recent sample.':'All currently selected history included.'} Local practice is excluded.`;}
     else if(match){const exp=await currentExport();summary=summarize([exp]);tables=flattenEvidence([exp]);if(!isLocal())audit=(await api(`/api/matches/${match.id}/analytics`)).data.audit;
-      $('analytics-coverage').textContent=isLocal()?'Local practice measurements · unverified · never part of official results.':`Match ${match.id.slice(0,8)} · ${summary.eventCount} audit events · ${match.difficulty} · ${match.humanDisc===1?'human':'JEV'} first.`;}
+      $('analytics-coverage').textContent=isLocal()?'Local practice measurements · unverified · never part of ranked results.':`Match ${match.id.slice(0,8)} · ${summary.eventCount} audit events · ${match.difficulty} · ${match.humanDisc===1?'human':'JEV'} first.`;}
     else{summary=summarize([]);$('analytics-coverage').textContent='Start a match to collect analytics. No synthetic data is shown.';}
     liveAnalysis={summary,tables,audit};renderAnalytics(summary,tables,audit);
   }catch(error){notice(errorMessage(error));}}
@@ -193,6 +208,9 @@ for(const b of document.querySelectorAll('[data-page]'))b.addEventListener('clic
 $('new-game').addEventListener('click',startGame);$('resign').addEventListener('click',resign);$('resume').addEventListener('click',()=>resumeMatch());
 $('continue-local').addEventListener('click',async()=>{const actions=[...match.actions],disc=match.humanDisc;clearTimeout(pollTimer);$('mode').value='local';createLocal(actions,disc);notice('Continued from the interrupted board as local practice. Earlier remote decisions are preserved only in the original server match.',true);syncControls();renderBoard();renderDecision();await localOpponent();});
 for(const id of ['mode','difficulty','human-disc','ranked'])$(id).addEventListener('change',syncControls);
+$('ranked').addEventListener('click',event=>{const state=rankedState();if(!state.ok){event.preventDefault();notice(state.text,true);}});
+document.addEventListener('visibilitychange',()=>{if(!document.hidden&&!busy)refreshIdentity().catch(()=>{/* Controls keep their last known state. */});});
+window.addEventListener('pageshow',event=>{if(event.persisted)refreshIdentity().catch(()=>{});});
 $('show-analysis').addEventListener('change',()=>{savePrefs();renderDecision();});$('telemetry-consent').addEventListener('change',()=>{clientPerformance={longTaskCount:0,longTaskDurationMs:0,hiddenMs:0};hiddenStarted=null;savePrefs();});
 $('login').addEventListener('click',()=>{location.href='/api/auth/discord';});$('logout').addEventListener('click',async()=>{try{await api('/api/logout',{method:'POST',body:{}});if(match&&!isLocal()){match=null;localExport=null;renderBoard();renderDecision();}localStorage.removeItem('c4-active-server-match');await refreshIdentity();notice('Signed out. Server matches remain associated with your account.',true);}catch(e){notice(errorMessage(e));}});
 for(const [button,dialog] of [['rules-open','rules-dialog'],['privacy-open','privacy-dialog']])$(button).addEventListener('click',()=>$(dialog).showModal());
@@ -218,7 +236,7 @@ async function init(){if(['easy','normal','hard','jev'].includes(prefs.difficult
   }
   try{await refreshIdentity();$('mode').value=identity.jevConfigured?(prefs.mode==='local'?'local':'jev'):'local';syncControls();
     if(launch){const {data}=await api('/api/context/redeem',{method:'POST',body:{ticket:launch}});if(data.requiresLogin)notice('Community launch staged. Connect the same Discord account to verify the server and channel.',true);else{await refreshIdentity();notice('Discord community context verified for this launch.',true);}}
-    else if(!identity.jevConfigured)notice('Local practice is ready. Configure the server’s TypeSafe key to enable real JEV; Discord credentials enable official results.',true);
+    else if(!identity.jevConfigured)notice('Local practice is ready. Configure the server’s TypeSafe key to enable real JEV; Discord credentials enable ranked results.',true);
     if(identity.activeMatchId)await resumeMatch(identity.activeMatchId);
   }catch(error){notice(`Local practice is available. ${errorMessage(error)}`);}
   if(!match){const recent=localHistory.at(-1);if(recent?.match?.status==='active'){try{replay(recent.match.actions);localExport=recent;match={...recent.match,local:true,turnReadyAt:Date.now()};renderBoard();renderDecision();await localOpponent();}catch{/* Invalid local storage never affects authoritative state. */}}}
@@ -229,13 +247,13 @@ async function init(){if(['easy','normal','hard','jev'].includes(prefs.difficult
    It runs last and only when `match` is still empty, so a server match resumed
    by activeMatchId and an unfinished local game restored from history both win
    over starting a new one -- a reload rejoins, it never opens a second match.
-   Ranked is taken only when the checkbox is actually enabled, which is the same
-   gate the player faces by hand (JEV mode AND signed in). With no JEV key
+   It never starts a ranked match: ranked has no undo and a loss on resignation,
+   so the player must tick Ranked match and press New game. With no JEV key
    $('mode') is pinned to 'local' above and startGame() routes to createLocal(),
    so an auto-started game is never relabeled as JEV. */
 async function autoStart(){
   if(match||busy)return;
-  $('ranked').checked=!$('ranked').disabled;syncControls();
+  $('ranked').checked=false;syncControls();
   try{await startGame();}catch(error){notice(errorMessage(error));}
 }
 init();

@@ -135,7 +135,7 @@ export function summarize(exports) {
       preparationMs:distribution(decisions.map(d=>d.prepareMs)),humanWallTurnMs:distribution(t.moves.filter(m=>m.actor==='human').map(m=>m.turnElapsedMs)),
       matchDurationMs:distribution(completed.map(m=>m.durationMs)),plies:distribution(completed.map(m=>m.plies))},
     tactics,columns,heatmap,cohorts,eventCount:t.events.length,
-    notes:['Official outcome aggregates exclude practice and interruptions.',
+    notes:['Ranked outcome aggregates exclude practice and interruptions.',
       'Cohorts must be compared separately by difficulty, opponent version and starting side.',
       'Server turn elapsed time includes human idle time and network delay, not just thinking.',
       'Tactical metrics identify immediate opportunities only, not game-theoretic optimality.',

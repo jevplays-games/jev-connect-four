@@ -30,7 +30,21 @@ cp .env.example .env
 npm start
 ```
 
-Set Discord credentials only after configuring the redirect URI and application. Guest JEV play does not require Discord. Ranked play does. The local heuristic is never represented as a model call or silently used to finish an official match.
+Set Discord credentials only after configuring the redirect URI and application. Guest JEV play does not require Discord. Ranked play does. The local heuristic is never represented as a model call or silently used to finish a ranked match.
+
+### Ranked match
+
+**Ranked match** (beside New game) puts a game on the leaderboard. It is available only to a Discord-signed-in player using the **JEV** opponent on a server that has both configured; the server enforces the same rules whatever the page shows. The page always says why the box is unavailable and what to do next:
+
+| Situation | Guidance shown |
+|---|---|
+| Server has no `TYPESAFE_API_KEY` | Unavailable: the operator must add the key. Only local practice runs. |
+| Opponent is Local practice | Ranked needs JEV and a Discord account; **Switch to JEV** button. |
+| JEV, guest, Discord configured | Needs a Discord account; **Connect Discord** button. |
+| JEV, guest, Discord not configured | Unavailable: the operator must configure Discord. Unranked JEV practice works. |
+| JEV, signed in | Tick the box before **New game**; the rules (server-assigned side, no undo, 24-hour deadline, resignation is a loss) are shown. |
+
+The box stays keyboard-focusable while unavailable (`aria-disabled`), its reason is its accessible description, and trying to tick it announces the reason. The page never starts a ranked match on its own: the automatic first game on page load is always unranked, so a ranked game needs an explicit tick and New game. Sign-in, sign-out, mode changes, returning to the tab and restoring a cached page all refresh the box.
 
 ## Included
 
