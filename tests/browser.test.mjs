@@ -96,11 +96,12 @@ const real=inline?{skip:'needs the served page and a real server'}:{};
 const meFixture=(extra={})=>({user:null,contexts:[],csrf:'fixture-csrf',activeMatchId:null,jevConfigured:true,discordConfigured:true,isAdmin:false,model:'jev-1.13.0',privacy:{clientTelemetry:'opt-in',auditRetentionDays:90},...extra});
 const player={id:'fixture-user',displayName:'Fixture Player'};
 async function fixturePage(initial,options={}){
-  const fixture={me:initial,posts:[],auth:0};
+  let release;const hold=options.hold?new Promise(resolveHold=>{release=resolveHold;}):null;
+  const fixture={me:initial,posts:[],auth:0,meGets:0,release:()=>release?.()};
   const opened=await openPage({...options,setup:async page=>{
-    await page.route('**/api/me',route=>route.request().method()==='GET'?route.fulfill({json:fixture.me}):route.continue());
-    await page.route('**/api/matches',route=>{if(route.request().method()!=='POST')return route.continue();
-      fixture.posts.push(route.request().postDataJSON());return route.fulfill({status:503,json:{error:'JEV_NOT_CONFIGURED'}});});
+    await page.route('**/api/me',route=>{if(route.request().method()!=='GET')return route.continue();fixture.meGets++;return route.fulfill({json:fixture.me});});
+    await page.route('**/api/matches',async route=>{if(route.request().method()!=='POST')return route.continue();
+      fixture.posts.push(route.request().postDataJSON());if(fixture.posts.length===1&&hold)await hold;return route.fulfill({status:503,json:{error:'JEV_NOT_CONFIGURED'}});});
     await page.route('**/api/logout',route=>{fixture.me=meFixture({user:null,jevConfigured:fixture.me.jevConfigured,discordConfigured:fixture.me.discordConfigured});return route.fulfill({json:{ok:true}});});
     await page.route('**/api/auth/discord',route=>{fixture.auth++;return route.fulfill({contentType:'text/html',body:'<!doctype html><title>discord</title>'});});
   }});
@@ -187,8 +188,67 @@ test('fixture: ranked guidance fits a phone and a short landscape frame without 
   for(const [width,height] of [[320,568],[844,390]]){
     const {page,context,fixture,errors}=await fixturePage(meFixture(),{width,height});await settled(page,fixture);
     assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1),true,`${width}x${height} has no horizontal overflow`);
-    if(width<500){const box=await page.locator('#ranked-note').boundingBox();assert.ok(box&&box.x>=0&&box.x+box.width<=width+1,'guidance stays on screen');
-      const target=await page.locator('#ranked-action').boundingBox();assert.ok(target.height>=43.5,'action is a full-size touch target');}
+    const box=await page.locator('#ranked-note').boundingBox();assert.ok(box&&box.x>=0&&box.x+box.width<=width+1,`${width}x${height}: guidance stays on screen`);
+    const target=await page.locator('#ranked-action').boundingBox();assert.ok(target.height>=43.5,'action is a full-size touch target');
     assert.deepEqual(errors,[]);await context.close();
   }
+});
+test('fixture: short landscape (844x390) keeps the ranked explanation and action next to the checkbox',real,async()=>{
+  const {page,context,fixture,errors}=await fixturePage(meFixture(),{width:844,height:390});await settled(page,fixture);
+  const shown=async()=>page.evaluate(()=>['ranked','ranked-note','ranked-action'].map(id=>{const el=document.getElementById(id);return [id,!el.hidden&&el.getClientRects().length>0];}));
+  assert.deepEqual(await shown(),[['ranked',true],['ranked-note',true],['ranked-action',true]],'guest: checkbox, reason and Connect Discord are all visible');
+  assert.match(await page.locator('#ranked-note').textContent(),/needs a Discord account/);
+  await page.screenshot({path:resolve(root,'test-results','ranked-844x390-guest.png'),fullPage:true});
+  await page.selectOption('#mode','local');
+  assert.equal(await page.locator('#ranked-action').textContent(),'Switch to JEV');assert.equal(await page.locator('#ranked-action').isVisible(),true);
+  await page.locator('#ranked-action').focus();await page.keyboard.press('Enter');
+  assert.equal(await page.locator('#mode').inputValue(),'jev','the visible action works from the keyboard at 844x390');
+  assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1),true);
+  assert.deepEqual(errors,[]);await context.close();
+  const eligible=await fixturePage(meFixture({user:player}),{width:844,height:390});await settled(eligible.page,eligible.fixture);
+  assert.equal(await eligible.page.locator('#ranked-note').isVisible(),true);assert.match(await eligible.page.locator('#ranked-note').textContent(),/Tick Ranked match before New game/);
+  await eligible.page.locator('#ranked').focus();await eligible.page.keyboard.press('Space');
+  assert.equal(await eligible.page.locator('#ranked-note').isVisible(),true);
+  assert.match(await eligible.page.locator('#ranked-note').textContent(),/counts toward the leaderboard.*no undo.*24-hour deadline.*resignation is a loss/);
+  await eligible.page.screenshot({path:resolve(root,'test-results','ranked-844x390-eligible.png'),fullPage:true});
+  assert.deepEqual(eligible.errors,[]);await eligible.context.close();
+});
+test('fixture: picture-in-picture still hides the ranked control and its guidance together',real,async()=>{
+  const {page,context,fixture,errors}=await fixturePage(meFixture({user:player}),{width:480,height:270});await settled(page,fixture);
+  assert.equal(await page.locator('#ranked').isVisible(),false);assert.equal(await page.locator('#ranked-note').isVisible(),false);
+  assert.deepEqual(errors,[]);await context.close();
+});
+test('fixture: a tab return while a game request is pending refreshes once it settles, without resending the game request',real,async()=>{
+  const {page,context,fixture,errors}=await fixturePage(meFixture({user:player}),{hold:true});
+  for(const until=Date.now()+8000;fixture.posts.length<1;){if(Date.now()>until)throw new Error('the held game request never arrived');await page.waitForTimeout(50);}
+  assert.equal(await page.locator('#new-game').isDisabled(),true,'the page is busy while the request is held');
+  assert.equal((await ranked(page)).ariaDisabled,'false');
+  fixture.me=meFixture({user:null});const before=fixture.meGets;
+  await page.evaluate(()=>document.dispatchEvent(new Event('visibilitychange')));
+  await page.waitForTimeout(300);
+  assert.equal(fixture.meGets,before,'no identity request is made in the middle of the pending operation');
+  assert.equal((await ranked(page)).ariaDisabled,'false','the control still shows the last known state while busy');
+  fixture.release();
+  await page.waitForFunction(()=>document.getElementById('ranked').getAttribute('aria-disabled')==='true');
+  const state=await ranked(page);
+  assert.equal(state.checked,false);assert.match(state.note,/needs a Discord account/);assert.equal(state.action,'Connect Discord');
+  assert.equal(await page.evaluate(()=>document.getElementById('identity').textContent),'Guest');
+  assert.equal(fixture.meGets,before+1,'exactly one deferred refresh, with no second visibility event');
+  assert.equal(fixture.posts.length,1,'the game request is not retried');
+  assert.deepEqual(errors,[]);await context.close();
+});
+test('fixture: configuration lost and restored, and a restored (bfcache) page, refresh the control',real,async()=>{
+  const {page,context,fixture,errors}=await fixturePage(meFixture({user:player}));await settled(page,fixture);
+  assert.equal((await ranked(page)).ariaDisabled,'false');
+  const restored=()=>page.evaluate(()=>window.dispatchEvent(new PageTransitionEvent('pageshow',{persisted:true})));
+  await page.check('#ranked');
+  fixture.me=meFixture({user:player,jevConfigured:false});await restored();
+  await page.waitForFunction(()=>document.getElementById('ranked-note').textContent.includes('no JEV connection configured'));
+  let state=await ranked(page);assert.equal(state.ariaDisabled,'true');assert.equal(state.checked,false,'a tick cannot survive lost configuration');
+  fixture.me=meFixture({user:player});await restored();
+  await page.waitForFunction(()=>document.getElementById('ranked').getAttribute('aria-disabled')==='false');
+  state=await ranked(page);assert.equal(state.checked,false,'restoring configuration does not re-tick the box');
+  const gets=fixture.meGets;await page.evaluate(()=>window.dispatchEvent(new PageTransitionEvent('pageshow',{persisted:false})));await page.waitForTimeout(200);
+  assert.equal(fixture.meGets,gets,'an ordinary pageshow does not refetch');
+  assert.deepEqual(errors,[]);await context.close();
 });

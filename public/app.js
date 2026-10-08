@@ -28,7 +28,9 @@ async function api(path,{method='GET',body,key}={}){
   return {data,latency:performance.now()-start};
 }
 function errorMessage(error){const map={JEV_NOT_CONFIGURED:'JEV is not configured on this server. Local practice remains available.',DISCORD_NOT_CONFIGURED:'Discord is not configured on this server.',RATE_LIMITED:'The server usage limit was reached. Local practice remains available.',ACTIVE_RANKED_MATCH:'You have an active ranked match. Resume or resign that match before starting another.',DISCORD_LOGIN_REQUIRED:'Ranked matches need a Discord sign-in. Connect Discord, or untick Ranked match to play unranked.',CONTEXT_EXPIRED_OR_INVALID:'Community access expired. Use /play in the Discord channel to create a fresh launch.',LAUNCH_WRONG_DISCORD_USER:'Sign in with the Discord account that launched this game.',SESSION_REQUIRED:'Your session expired. Reload the page before continuing.',CSRF_REJECTED:'Your session changed. Reload the page before continuing.',STALE_MATCH:'The board changed in another request or tab. Resume to synchronize.'};return map[error.code]||error.message;}
-function setBusy(value){busy=value;$('new-game').disabled=value;renderBoard();}
+let identityStale=false,identitySeq=0;
+function refreshWhenIdle(){if(busy){identityStale=true;return;}identityStale=false;refreshIdentity().catch(()=>{/* Controls keep their last known state. */});}
+function setBusy(value){busy=value;$('new-game').disabled=value;renderBoard();if(!value&&identityStale)refreshWhenIdle();}
 function isLocal(){return match?.local===true;}
 function savePrefs(){store('c4-preferences',{difficulty:$('difficulty').value,mode:$('mode').value,analysis:$('show-analysis').checked,telemetry:$('telemetry-consent').checked});}
 const RANKED_RULES='server-assigned starting side · no undo · 24-hour deadline · resignation is a loss';
@@ -48,7 +50,7 @@ function syncControls(){const remote=$('mode').value==='jev',box=$('ranked'),sta
   $('ranked-note').textContent=state.ok?(box.checked?`Ranked match counts toward the leaderboard: ${RANKED_RULES}.`:'Tick Ranked match before New game to play for the leaderboard. Leave it unticked for unranked JEV practice.'):state.text;
   const action=$('ranked-action');action.hidden=!state.action;action.textContent=state.action?.label||'';action.onclick=state.action?.run||null;
   savePrefs();}
-async function refreshIdentity(){const {data}=await api('/api/me');identity=data;csrf=data.csrf;$('identity').textContent=data.user?.displayName||'Guest';$('human-name').textContent=data.user?.displayName||'You';$('login').hidden=!!data.user;$('logout').hidden=!data.user;$('login').disabled=!data.discordConfigured;$('login').title=data.discordConfigured?'Sign in with Discord':'Configure Discord client credentials on the server';$('operator-panel').hidden=!data.isAdmin;syncControls();return data;}
+async function refreshIdentity(){const seq=++identitySeq,{data}=await api('/api/me');if(seq!==identitySeq)return identity;identity=data;csrf=data.csrf;$('identity').textContent=data.user?.displayName||'Guest';$('human-name').textContent=data.user?.displayName||'You';$('login').hidden=!!data.user;$('logout').hidden=!data.user;$('login').disabled=!data.discordConfigured;$('login').title=data.discordConfigured?'Sign in with Discord':'Configure Discord client credentials on the server';$('operator-panel').hidden=!data.isAdmin;syncControls();return data;}
 function renderBoard(){
   const start=performance.now(),s=optimistic||match?.state||createInitialState(),humanDisc=match?.humanDisc||Number($('human-disc').value);
   const active=match?.status==='active'&&s.status==='active',myTurn=active&&s.toMove===humanDisc&&!busy&&!optimistic;
@@ -209,8 +211,8 @@ $('new-game').addEventListener('click',startGame);$('resign').addEventListener('
 $('continue-local').addEventListener('click',async()=>{const actions=[...match.actions],disc=match.humanDisc;clearTimeout(pollTimer);$('mode').value='local';createLocal(actions,disc);notice('Continued from the interrupted board as local practice. Earlier remote decisions are preserved only in the original server match.',true);syncControls();renderBoard();renderDecision();await localOpponent();});
 for(const id of ['mode','difficulty','human-disc','ranked'])$(id).addEventListener('change',syncControls);
 $('ranked').addEventListener('click',event=>{const state=rankedState();if(!state.ok){event.preventDefault();notice(state.text,true);}});
-document.addEventListener('visibilitychange',()=>{if(!document.hidden&&!busy)refreshIdentity().catch(()=>{/* Controls keep their last known state. */});});
-window.addEventListener('pageshow',event=>{if(event.persisted)refreshIdentity().catch(()=>{});});
+document.addEventListener('visibilitychange',()=>{if(!document.hidden)refreshWhenIdle();});
+window.addEventListener('pageshow',event=>{if(event.persisted)refreshWhenIdle();});
 $('show-analysis').addEventListener('change',()=>{savePrefs();renderDecision();});$('telemetry-consent').addEventListener('change',()=>{clientPerformance={longTaskCount:0,longTaskDurationMs:0,hiddenMs:0};hiddenStarted=null;savePrefs();});
 $('login').addEventListener('click',()=>{location.href='/api/auth/discord';});$('logout').addEventListener('click',async()=>{try{await api('/api/logout',{method:'POST',body:{}});if(match&&!isLocal()){match=null;localExport=null;renderBoard();renderDecision();}localStorage.removeItem('c4-active-server-match');await refreshIdentity();notice('Signed out. Server matches remain associated with your account.',true);}catch(e){notice(errorMessage(e));}});
 for(const [button,dialog] of [['rules-open','rules-dialog'],['privacy-open','privacy-dialog']])$(button).addEventListener('click',()=>$(dialog).showModal());

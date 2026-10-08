@@ -26,3 +26,5 @@
 @media(prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important;scroll-behavior:auto!important}}
 .ranked-action{margin-left:var(--s2);font-size:var(--fs-xs)}
 .checkbox input[aria-disabled="true"]{opacity:.55;cursor:not-allowed}
+.ranked-help{font-size:var(--fs-xs);color:var(--muted);margin:var(--s3) 0 0}
+@media(max-height:560px) and (orientation:landscape){.ranked-help{margin:var(--s1) 0 0;font-size:var(--fs-2xs);line-height:1.35}}
