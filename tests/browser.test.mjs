@@ -317,7 +317,8 @@ test('fixture (server-shaped): an ordinary unranked start succeeds for a guest a
   await playsOneMove(page,shaped);
   assert.deepEqual(errors,[]);await context.close();shaped.close();
 });
-// F3 (Astra c4-review-02): the first /api/me is held, the tab is returned to, and the two identity answers arrive in each order.
+// F3 (Astra c4-review-02): the first /api/me is held while the tab is returned to. /api/me is never in flight twice (a cookie-less request makes the server
+// create a session with its own Set-Cookie and CSRF token), so the second request is sent only after the first is answered, and startup waits for the newest one.
 // Offline fixture evidence: /api/me and the signed-in user are fixtures; /api/matches is answered by the real Worker handler.
 const arrived=async(page,fixture,n)=>{for(const until=Date.now()+8000;fixture.meGets<n;){if(Date.now()>until)throw new Error(`identity request ${n} never arrived`);await page.waitForTimeout(50);}};
 const visibleReturn=page=>page.evaluate(()=>document.dispatchEvent(new Event('visibilitychange')));
@@ -326,7 +327,9 @@ async function heldBootstrap(options={}){
   const opened=await fixturePage(meFixture(),{serverShaped:options.shaped===false?undefined:{user:true},holdMe:2,hash:options.hash});
   const {page,fixture}=opened;await arrived(page,fixture,1);
   const match=fixture.shaped?await fixture.shaped.create({ranked:true}):null;
-  await visibleReturn(page);await arrived(page,fixture,2);
+  for(let i=0;i<(options.returns||1);i++)await visibleReturn(page);
+  await page.waitForTimeout(400);
+  assert.equal(fixture.meGets,1,'the tab return waits: no second identity request while the first is unanswered');
   return {...opened,match,older:id=>named('Older Player',{activeMatchId:id,csrf:'csrf-older'}),newer:id=>named('Newer Player',{activeMatchId:id,csrf:'csrf-newer'})};
 }
 const matchReads=(shaped,id)=>shaped.log.filter(entry=>entry.method==='GET'&&entry.path===`/api/matches/${id}`);
@@ -341,25 +344,24 @@ async function assertResumedOnce({page,fixture,match,errors}){
   assert.equal(await page.locator('#resign').isDisabled(),false);
   assert.deepEqual(errors,[]);
 }
-test('fixture (server-shaped): a tab return during the first identity request, older answer first, waits for the newest identity before resuming the match',real,async()=>{
+test('fixture (server-shaped): a tab return during the first identity request is sent after it, and startup waits for that newest identity before resuming the match',real,async()=>{
   const boot=await heldBootstrap(),{page,fixture,match}=boot;
-  fixture.releaseMe(1,boot.older(match.id));await page.waitForTimeout(400);
-  assert.equal(await page.locator('#identity').textContent(),'Guest','the superseded answer was not installed');
+  fixture.releaseMe(1,boot.older(match.id));await arrived(page,fixture,2);await page.waitForTimeout(400);
   assert.equal(fixture.shaped.log.length,0,'nothing was read or created before the newest identity arrived');assert.equal(fixture.posts.length,0);
   fixture.releaseMe(2,boot.newer(match.id));
   await assertResumedOnce(boot);assert.equal(fixture.meGets,2);await boot.context.close();fixture.shaped.close();
 });
-test('fixture (server-shaped): a tab return during the first identity request, newest answer first, is not overwritten by the older answer',real,async()=>{
-  const boot=await heldBootstrap(),{page,fixture,match}=boot;
-  fixture.releaseMe(2,boot.newer(match.id));await page.waitForTimeout(400);
-  assert.equal(await page.locator('#identity').textContent(),'Newer Player');
-  assert.equal(fixture.shaped.log.length,0,'bootstrap still waits for its own request');assert.equal(fixture.posts.length,0);
-  fixture.releaseMe(1,boot.older(match.id));
+test('fixture (server-shaped): several tab returns during the first identity request share one trailing request, and the resumed match is read once',real,async()=>{
+  const boot=await heldBootstrap({returns:3}),{page,fixture,match}=boot;
+  fixture.releaseMe(1,boot.older(match.id));await arrived(page,fixture,2);await page.waitForTimeout(400);
+  assert.equal(fixture.meGets,2,'the three tab returns were coalesced into one request');
+  assert.equal(fixture.shaped.log.length,0,'startup still waits');
+  fixture.releaseMe(2,boot.newer(match.id));
   await assertResumedOnce(boot);assert.equal(fixture.meGets,2);await boot.context.close();fixture.shaped.close();
 });
 test('fixture (server-shaped): a failed first identity request follows the newer one instead of falling back to local practice',real,async()=>{
   const boot=await heldBootstrap(),{page,fixture,match}=boot;
-  fixture.releaseMe(1,{error:'UNAVAILABLE'},503);await page.waitForTimeout(400);
+  fixture.releaseMe(1,{error:'UNAVAILABLE'},503);await arrived(page,fixture,2);await page.waitForTimeout(400);
   assert.equal(fixture.shaped.log.length,0);assert.equal(fixture.posts.length,0);
   assert.equal(await page.locator('#notice').isHidden(),true,'no local-practice fallback notice while the newer request is pending');
   fixture.releaseMe(2,boot.newer(match.id));
@@ -368,11 +370,57 @@ test('fixture (server-shaped): a failed first identity request follows the newer
 test('fixture: a launch ticket is redeemed once, and only with the newest identity CSRF token',real,async()=>{
   const boot=await heldBootstrap({shaped:false,hash:'#launch=ticket-1'}),{page,fixture,errors}=boot;
   fixture.me=boot.newer(null);
-  fixture.releaseMe(1,boot.older(null));await page.waitForTimeout(400);
+  fixture.releaseMe(1,boot.older(null));await arrived(page,fixture,2);await page.waitForTimeout(400);
   assert.equal(fixture.redeems.length,0,'no redemption while only a superseded identity has arrived');
   fixture.releaseMe(2,boot.newer(null));
   for(const until=Date.now()+8000;fixture.redeems.length<1;){if(Date.now()>until)throw new Error('the launch ticket was never redeemed');await page.waitForTimeout(50);}
   await settled(page,fixture);
   assert.equal(fixture.redeems.length,1);assert.equal(fixture.redeems[0].csrf,'csrf-newer');assert.equal(fixture.redeems[0].meGets,2);
   assert.deepEqual(errors,[]);await boot.context.close();
+});
+// Cold guest (Sol's source-inspection concern): with no session cookie every /api/me makes the real handler create a guest session and answer with its own Set-Cookie and
+// CSRF token. Here /api/me AND /api/matches are both answered by the real Worker handler (in-memory database, offline stub provider, no network, no key), and the handler
+// verifies the CSRF token the page actually sends against the cookie the browser actually kept. Offline fixture evidence: the cookie jar is modelled by this test (the
+// handler's Set-Cookie is applied when the response is delivered, and the jar is sent when a request is made) instead of by the browser, and the origin header is the handler's own.
+// If the page sent two cold requests and the older answer landed last, the page would hold the newest CSRF token with the older session's cookie and the game POST would be CSRF_REJECTED.
+async function coldGuest(){
+  const {environment}=await import('./helpers.js');
+  const worker=(await import('../server/worker.js')).default;
+  const env=environment({APP_ORIGIN:origin}),log=[],gates={};
+  const state={jar:'',meGets:0,inFlight:0,maxInFlight:0};
+  const gate=n=>gates[n]??=(()=>{let open;const promise=new Promise(resolveGate=>{open=resolveGate;});return {promise,open};})();
+  const handle=async route=>{
+    const request=route.request(),url=new URL(request.url()),sent=state.jar,headers=request.headers();
+    const isMe=url.pathname==='/api/me'&&request.method()==='GET',n=isMe?++state.meGets:0;
+    if(isMe){state.inFlight++;state.maxInFlight=Math.max(state.maxInFlight,state.inFlight);}
+    const init={method:request.method(),headers:{...(sent?{cookie:sent}:{}),...(request.method()==='GET'?{}:{origin:env.APP_ORIGIN,'x-csrf-token':headers['x-csrf-token']||'','content-type':'application/json',...(headers['idempotency-key']?{'idempotency-key':headers['idempotency-key']}:{})})},...(request.postData()?{body:request.postData()}:{})};
+    const tasks=[],response=await worker.fetch(new Request(env.APP_ORIGIN+url.pathname+url.search,init),env,{waitUntil:p=>tasks.push(p)});await Promise.all(tasks);
+    const set=response.headers.get('set-cookie'),text=await response.text();let data;try{data=JSON.parse(text);}catch{data={};}
+    if(isMe&&n<=2)await gate(n).promise;
+    if(set)state.jar=/Max-Age=0/i.test(set)?'':set.split(';')[0];
+    if(isMe)state.inFlight--;
+    log.push({method:request.method(),path:url.pathname,status:response.status,sentCookie:!!sent,issuedCookie:!!set,error:data.error,requested:request.postData()?JSON.parse(request.postData()):undefined,data});
+    return route.fulfill({status:response.status,contentType:'application/json',body:text});};
+  return {log,state,handle,release:n=>gate(n).open(),close:()=>env.DB.close(),starts:()=>log.filter(entry=>entry.method==='POST'&&entry.path==='/api/matches')};
+}
+test('fixture (real handler, modelled cookie jar): a cold guest who returns to the tab during the first /api/me keeps one session and starts an ordinary unranked game',real,async()=>{
+  const cold=await coldGuest();
+  const {page,context,errors}=await openPage({waitUntil:'load',setup:p=>p.route(/\/api\/(me|matches)(\/|\?|$)/,cold.handle)});
+  for(const until=Date.now()+8000;cold.state.meGets<1;){if(Date.now()>until)throw new Error('the first identity request never arrived');await page.waitForTimeout(50);}
+  await visibleReturn(page);await page.waitForTimeout(400);
+  // A page that overlapped its requests would have two in flight now; release the newest answer first, the order that breaks cookie and CSRF agreement.
+  if(cold.state.meGets>1){cold.release(2);cold.release(1);}else{cold.release(1);cold.release(2);}
+  for(const until=Date.now()+8000;!cold.starts().length;){if(Date.now()>until)throw new Error('the page never started a game');await page.waitForTimeout(50);}
+  const [start]=cold.starts();
+  assert.equal(start.status,201,`the game start was accepted (error: ${start.error})`);assert.equal(start.requested.ranked,false);assert.equal(start.data.ranked,false);
+  assert.equal(cold.log.filter(entry=>entry.error==='CSRF_REJECTED').length,0,'the handler never rejected the page\'s CSRF token');
+  assert.equal(cold.log.filter(entry=>entry.issuedCookie).length,1,'exactly one guest session was created');
+  assert.deepEqual(cold.log.filter(entry=>entry.path==='/api/me').map(entry=>entry.sentCookie),[false,true],'the second identity request carried the first one\'s cookie');
+  assert.equal(cold.state.meGets,2,'the tab return became one trailing identity request');assert.equal(cold.state.maxInFlight,1,'/api/me was never in flight twice');
+  await page.waitForFunction(()=>!document.getElementById('new-game').disabled);
+  assert.equal(await page.locator('#verification-badge').textContent(),'SERVER PRACTICE');
+  assert.equal(await page.locator('#turn-label').textContent(),'Your turn');assert.ok(await columnsEnabled(page)>0);
+  await playsOneMove(page,cold);
+  assert.equal(cold.log.filter(entry=>entry.error==='CSRF_REJECTED').length,0,'nor was the move rejected');
+  assert.deepEqual(errors,[]);await context.close();cold.close();
 });
