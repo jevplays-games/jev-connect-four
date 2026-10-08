@@ -92,16 +92,33 @@ test('local opponent first works at Hard difficulty; analysis toggle hides panel
 // "fixture" tests serve the same page but answer /api/me, /api/matches and /api/logout from the test, to reach the
 // configured and signed-in states without secrets or a provider. They prove the page's behaviour; they are not
 // evidence of a live JEV or Discord flow.
+// "server-shaped" fixtures go one step further: /api/matches requests from the page are answered by the repository's real
+// Worker handler (server/worker.js) running in this Node process on an in-memory database with the offline stub provider
+// from tests/helpers.js. The response bodies are therefore the server's own, but the signed-in user is a database row
+// created by the test: this is still offline fixture evidence, not Discord OAuth, a typed JEV call or the deployed server.
 const real=inline?{skip:'needs the served page and a real server'}:{};
 const meFixture=(extra={})=>({user:null,contexts:[],csrf:'fixture-csrf',activeMatchId:null,jevConfigured:true,discordConfigured:true,isAdmin:false,model:'jev-1.13.0',privacy:{clientTelemetry:'opt-in',auditRetentionDays:90},...extra});
 const player={id:'fixture-user',displayName:'Fixture Player'};
+async function serverShaped(user){
+  const {environment,client}=await import('./helpers.js');
+  const env=environment(),actor=await client(env,{user,name:player.displayName}),log=[];
+  const handle=async route=>{const request=route.request(),url=new URL(request.url()),body=request.postData()?JSON.parse(request.postData()):undefined;
+    const key=request.headers()['idempotency-key'];
+    const result=await actor.call(url.pathname+url.search,request.method(),body,key?{'Idempotency-Key':key}:{});
+    log.push({method:request.method(),path:url.pathname,status:result.status,requested:body,data:result.data});
+    return route.fulfill({status:result.status,json:result.data});};
+  return {log,handle,close:()=>env.DB.close(),starts:()=>log.filter(entry=>entry.method==='POST'&&entry.path==='/api/matches')};
+}
 async function fixturePage(initial,options={}){
   let release;const hold=options.hold?new Promise(resolveHold=>{release=resolveHold;}):null;
-  const fixture={me:initial,posts:[],auth:0,meGets:0,release:()=>release?.()};
+  const shaped=options.serverShaped?await serverShaped(options.serverShaped.user):null;
+  const fixture={me:initial,posts:[],auth:0,meGets:0,release:()=>release?.(),shaped};
   const opened=await openPage({...options,setup:async page=>{
     await page.route('**/api/me',route=>{if(route.request().method()!=='GET')return route.continue();fixture.meGets++;return route.fulfill({json:fixture.me});});
-    await page.route('**/api/matches',async route=>{if(route.request().method()!=='POST')return route.continue();
-      fixture.posts.push(route.request().postDataJSON());if(fixture.posts.length===1&&hold)await hold;return route.fulfill({status:503,json:{error:'JEV_NOT_CONFIGURED'}});});
+    await page.route(/\/api\/matches(\/|\?|$)/,async route=>{const request=route.request(),path=new URL(request.url()).pathname;
+      if(shaped){if(request.method()==='POST'&&path==='/api/matches')fixture.posts.push(request.postDataJSON());return shaped.handle(route);}
+      if(request.method()!=='POST'||path!=='/api/matches')return route.continue();
+      fixture.posts.push(request.postDataJSON());if(fixture.posts.length===1&&hold)await hold;return route.fulfill({status:503,json:{error:'JEV_NOT_CONFIGURED'}});});
     await page.route('**/api/logout',route=>{fixture.me=meFixture({user:null,jevConfigured:fixture.me.jevConfigured,discordConfigured:fixture.me.discordConfigured});return route.fulfill({json:{ok:true}});});
     await page.route('**/api/auth/discord',route=>{fixture.auth++;return route.fulfill({contentType:'text/html',body:'<!doctype html><title>discord</title>'});});
   }});
@@ -251,4 +268,47 @@ test('fixture: configuration lost and restored, and a restored (bfcache) page, r
   const gets=fixture.meGets;await page.evaluate(()=>window.dispatchEvent(new PageTransitionEvent('pageshow',{persisted:false})));await page.waitForTimeout(200);
   assert.equal(fixture.meGets,gets,'an ordinary pageshow does not refetch');
   assert.deepEqual(errors,[]);await context.close();
+});
+const columnsEnabled=page=>page.evaluate(()=>[...document.querySelectorAll('.column-button')].filter(b=>!b.disabled).length);
+const moveCount=page=>page.evaluate(()=>Number(document.getElementById('move-count').textContent));
+async function playsOneMove(page,shaped){
+  const before=await moveCount(page);
+  await page.locator('.column-button[data-column="3"]').click();
+  await page.waitForFunction(was=>Number(document.getElementById('move-count').textContent)>was,before);
+  const drop=shaped.log.findLast(entry=>entry.path.endsWith('/commands'));
+  assert.ok(drop&&drop.status>=200&&drop.status<300,'the server accepted the move');
+  await page.waitForFunction(()=>!document.getElementById('new-game').disabled);
+}
+test('fixture (server-shaped): a signed-in player ticks Ranked match, and the real handler\'s ranked response is shown as a playable ranked game',real,async()=>{
+  const {page,context,fixture,errors}=await fixturePage(meFixture({user:player}),{serverShaped:{user:true}});await settled(page,fixture);
+  const shaped=fixture.shaped;
+  assert.equal(shaped.starts()[0].status,201);assert.equal(shaped.starts()[0].requested.ranked,false);assert.equal(shaped.starts()[0].data.ranked,false,'the automatic first game is unranked');
+  assert.equal(await page.locator('#verification-badge').textContent(),'SERVER PRACTICE');
+  await page.locator('#ranked').focus();await page.keyboard.press('Space');
+  await page.locator('#new-game').focus();await page.keyboard.press('Enter');
+  await settled(page,fixture,2);
+  const [, start]=shaped.starts();
+  assert.equal(start.requested.ranked,true,'the page posted ranked:true');assert.equal(start.status,201);
+  assert.equal(start.data.ranked,true);assert.equal(start.data.status,'active');assert.equal(start.data.pending,null);assert.equal(start.data.eligible,false,'not eligible until the server finalizes it');
+  assert.ok([1,2].includes(start.data.humanDisc),'the server, not the page, assigned the side');
+  await page.waitForFunction(()=>document.getElementById('verification-badge').textContent==='RANKED · IN PROGRESS');
+  assert.equal(await page.locator('#resign').isDisabled(),false,'a ranked match in progress can be resigned');
+  assert.equal(start.data.state.toMove,start.data.humanDisc,'the server left the player to move');
+  assert.equal(await page.locator('#turn-label').textContent(),'Your turn');assert.ok(await columnsEnabled(page)>0,'the board is playable');
+  assert.equal(await moveCount(page),start.data.state.ply);
+  await playsOneMove(page,shaped);
+  await page.locator('#new-game').click();
+  assert.match(await page.locator('#notice').textContent(),/ranked match is still active/i,'a second start is refused while the ranked match runs');
+  assert.equal(shaped.starts().length,2,'and no second request was sent');
+  assert.deepEqual(errors,[]);await context.close();shaped.close();
+});
+test('fixture (server-shaped): an ordinary unranked start succeeds for a guest and the ranked box stays unavailable',real,async()=>{
+  const {page,context,fixture,errors}=await fixturePage(meFixture(),{serverShaped:{user:false}});await settled(page,fixture);
+  const shaped=fixture.shaped,[start]=shaped.starts();
+  assert.equal(start.requested.ranked,false);assert.equal(start.status,201);assert.equal(start.data.ranked,false);assert.equal(start.data.status,'active');
+  assert.equal(await page.locator('#verification-badge').textContent(),'SERVER PRACTICE');
+  const state=await ranked(page);assert.equal(state.ariaDisabled,'true');assert.equal(state.checked,false);assert.equal(state.action,'Connect Discord');
+  assert.equal(await page.locator('#turn-label').textContent(),'Your turn');assert.ok(await columnsEnabled(page)>0);
+  await playsOneMove(page,shaped);
+  assert.deepEqual(errors,[]);await context.close();shaped.close();
 });
