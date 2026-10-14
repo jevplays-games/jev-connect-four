@@ -18,7 +18,7 @@ flowchart LR
     Auth[OAuth + sessions + CSRF]
     Match[Authoritative match controller]
     Policy[Candidate preparation + tactical proofs]
-    Adapter[Typed JEV adapter]
+    Adapter[Typed Jev adapter]
     Audit[Replay / provenance verifier]
     DB[(D1: snapshots / events / commands)]
     API --> Auth
@@ -29,7 +29,7 @@ flowchart LR
     Audit --> DB
   end
   UI <-->|Commands / snapshots / owned evidence| API
-  Adapter <-->|Pinned model / bounded state| JEV[TypeSafe API]
+  Adapter <-->|Pinned model / bounded state| Jev[TypeSafe API]
   Auth <--> Discord[Discord OAuth / signed interactions]
 ```
 
@@ -46,7 +46,7 @@ The state has 42 bottom-row-first cells, ply, toMove, terminal status, winner, w
 | Easy | 1 | 50 | position 1 |
 | Normal | 2 | 100 | attack .5, safety .5 |
 | Hard | 4 | 2,000 | attack .4, safety .4, support .2 |
-| JEV | 6 | 10,000 | attack .35, safety .35, support .2, initiative .1 |
+| Jev | 6 | 10,000 | attack .35, safety .35, support .2, initiative .1 |
 
 These are implemented settings, not measured difficulty rankings. The maximum is 28 Score questions, seven columns times four factors. A singleton candidate bypasses the model with a recorded tactical reason. Utilities are rounded before deterministic tie-breaking. Unknown bounded-search positions never become false draws.
 
@@ -59,7 +59,7 @@ flowchart TD
   E --> P[Persist prepared request and decision lease]
   P --> Q{Multiple candidates?}
   Q -- No --> B[Recorded tactical bypass]
-  Q -- Yes --> J[Typed JEV Score call]
+  Q -- Yes --> J[Typed Jev Score call]
   J --> V[Validate model / schema / values / usage]
   V --> R[Versioned utility and tie-break]
   B --> A[Revalidate lease / revision / legal action]

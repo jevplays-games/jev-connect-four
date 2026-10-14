@@ -18,11 +18,11 @@ export function environment(overrides={}) {
   env.advance=ms=>{time+=ms;};
   return env;
 }
-export async function client(env,{user=false,discordId='123456789012345678',name='Test Player'}={}) {
+export async function client(env,{user=false,discordId='123456789012345678',name='Test Player',origin=env.APP_ORIGIN}={}) {
   let cookie='',csrf='';
   async function call(path,method='GET',body,headers={}) {
-    const req=new Request(env.APP_ORIGIN+path,{method,headers:{...(cookie?{cookie}:{}),
-      ...(method==='GET'?{}:{origin:env.APP_ORIGIN,'x-csrf-token':csrf,'content-type':'application/json'}),...headers},
+    const req=new Request(origin+path,{method,headers:{...(cookie?{cookie}:{}),
+      ...(method==='GET'?{}:{origin,'x-csrf-token':csrf,'content-type':'application/json'}),...headers},
       ...(body!==undefined?{body:JSON.stringify(body)}:{})});
     const tasks=[],response=await worker.fetch(req,env,{waitUntil:p=>tasks.push(p)});
     await Promise.all(tasks);

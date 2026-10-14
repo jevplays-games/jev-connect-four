@@ -13,8 +13,9 @@ The local server is not intended to be exposed through a public interface or rev
 | Variable | Purpose |
 |---|---|
 | `APP_ORIGIN` | Exact canonical browser origin; include scheme and local port when applicable |
+| `LEGACY_ORIGINS` | Optional comma-separated old origins that are still served as themselves (sign-in, cookies and `Origin` checks follow the request's host). Discord launch links always use `APP_ORIGIN` |
 | `APP_SECRET` | At least 32 characters; production random secret for session-bound HMAC uses, abuse keys and cursors |
-| `TYPESAFE_API_KEY` | Server-only JEV bearer credential |
+| `TYPESAFE_API_KEY` | Server-only Jev bearer credential |
 | `JEV_MODEL` | Pinned model name; initial profile uses `jev-1.13.0` |
 | `DISCORD_CLIENT_ID` | Application ID, not secret |
 | `DISCORD_CLIENT_SECRET` | Server-only OAuth/client-credentials secret |
@@ -22,8 +23,8 @@ The local server is not intended to be exposed through a public interface or rev
 | `ADMIN_DISCORD_IDS` | Comma-separated exact IDs for aggregate operator access; empty disables access |
 | `JEV_INPUT_USD_PER_MILLION` | Explicit estimated input rate stored in match manifests |
 | `JEV_OUTPUT_USD_PER_MILLION` | Optional output rate; defaults to zero |
-| `GUEST_DAILY_MATCH_LIMIT` | Default 3 JEV match allocations per daily abuse bucket |
-| `USER_DAILY_MATCH_LIMIT` | Default 30 JEV match allocations per account/day |
+| `GUEST_DAILY_MATCH_LIMIT` | Default 3 Jev match allocations per daily abuse bucket |
+| `USER_DAILY_MATCH_LIMIT` | Default 30 Jev match allocations per account/day |
 | `GLOBAL_DAILY_JEV_CALL_LIMIT` | Default 3,000 HTTP attempts/day, including retries |
 | `AUDIT_RETENTION_DAYS` | Default 90; diagnostic retention and guest-history cutoff |
 | `PORT` | Local server only, default 8787 |
@@ -36,9 +37,9 @@ The same Worker `fetch` handler runs on plain Node through `scripts/dev.mjs` in 
 
 - Listens on `PORT` (injected by the host) at `HOST` (default `0.0.0.0`). TLS is terminated by the proxy.
 - Worker-equivalent environment: `DEV_LOCAL` is not set, so ranked play, Discord interactions, OAuth and the Activity are enabled and cookies are `Secure`. Startup fails without `APP_ORIGIN` and an `APP_SECRET` of 32+ characters.
-- Required: `APP_ORIGIN` (`https://connect-four.jevplay.games`), `APP_SECRET`, `TYPESAFE_API_KEY`, `DISCORD_CLIENT_ID`, `DISCORD_CLIENT_SECRET`, `DISCORD_PUBLIC_KEY`. Optional: `HOST`, `DB_FILE`, `TRUST_PROXY`, `ADMIN_DISCORD_IDS` and the limit variables above.
+- Required: `APP_ORIGIN` (`https://choice-four.jevplay.games`), `APP_SECRET`, `TYPESAFE_API_KEY`, `DISCORD_CLIENT_ID`, `DISCORD_CLIENT_SECRET`, `DISCORD_PUBLIC_KEY`. Optional: `LEGACY_ORIGINS`, `HOST`, `DB_FILE`, `TRUST_PROXY`, `ADMIN_DISCORD_IDS` and the limit variables above.
 - `TRUST_PROXY=1` takes the client address for abuse buckets from the last `X-Forwarded-For` entry; with `0` every visitor shares the proxy address and so one guest quota. The request URL is always built from `APP_ORIGIN`; the CSRF `Origin` checks still compare against it.
-- SQLite lives at `data/connect-four.sqlite` (private, never under `public/`). The filesystem is ephemeral: matches, sessions and the ranked leaderboard are lost on redeploy.
+- SQLite lives at `data/choice-four.sqlite` (private, never under `public/`). A host that still has the pre-rename `data/connect-four.sqlite` keeps using it until it is renamed or `DB_FILE` is set. The filesystem is ephemeral: matches, sessions and the ranked leaderboard are lost on redeploy.
 - The Cloudflare cron is replaced by an in-process 60-second timer running the same cleanup/expiry handler.
 
 ## Cloudflare Worker and D1
@@ -48,10 +49,10 @@ The provided `wrangler.jsonc` is a deployment template, not an already deployed 
 ```sh
 npm install
 npx wrangler login
-npx wrangler d1 create jev-connect-four
+npx wrangler d1 create jev-choice-four
 ```
 
-Replace `database_id` with the returned ID. Set the actual `APP_ORIGIN` in `wrangler.jsonc` and configure the corresponding Worker/custom domain. Do not leave placeholder values. The asset binding is `ASSETS`, the database binding is `DB`.
+Replace `database_name` and `database_id` with the returned values. (The hosted instance keeps its original database name; D1 has no rename.) Set the actual `APP_ORIGIN` in `wrangler.jsonc` and configure the corresponding Worker/custom domain. Do not leave placeholder values. The asset binding is `ASSETS`, the database binding is `DB`.
 
 ```sh
 npm run db:remote
@@ -92,10 +93,20 @@ Direct OAuth login proves identity but supplies no Channel/Server proof by itsel
 
 ## Required live smoke test
 
-Before admitting public ranked play, verify the health endpoint, static assets and policy headers; a real typed JEV response; a guest match; OAuth consent/callback/session rotation; a signed Discord launch; wrong-user ticket rejection; a complete ranked match; replay/provenance audit; one and only one eligible leaderboard result in each applicable scope; context expiry; account deletion; controlled provider failure; and deadline cleanup.
+Before admitting public ranked play, verify the health endpoint, static assets and policy headers; a real typed Jev response; a guest match; OAuth consent/callback/session rotation; a signed Discord launch; wrong-user ticket rejection; a complete ranked match; replay/provenance audit; one and only one eligible leaderboard result in each applicable scope; context expiry; account deletion; controlled provider failure; and deadline cleanup.
 
 A model alias or response-schema change must not silently enter the existing cohort. Pin and re-evaluate a new model/profile. Update the profile version whenever behavior changes. Do not enter a production key in the browser or commit it with the ZIP.
 
 ## Reproducible tooling
 
 Direct development dependencies are pinned in `package.json`; no lockfile is bundled because registry access was unavailable during creation. After obtaining dependencies, review/install them and commit the generated lockfile in your own repository. The supplied CI currently uses `npm install` for its browser job; switch to `npm ci` once you have a reviewed lockfile.
+
+## Hostname rename (Connect Four → Choice Four)
+
+The game moved from `connect-four.jevplay.games` to `choice-four.jevplay.games`. Until cutover the Worker serves both: `wrangler.jsonc` routes both custom domains and sets `LEGACY_ORIGINS` to the old origin, so an old link, an existing session cookie or a Discord Activity still mapped to the old host keeps working. Cutover order:
+
+1. Copy the Worker secrets to the renamed Worker `jev-choice-four` (`APP_SECRET` must be the same value, or every session and launch ticket is invalidated), then deploy. The old Worker `jev-connect-four` still owns `connect-four.jevplay.games`: move that custom domain to the new Worker during the deploy, and delete the old Worker once the new one serves both hosts. The D1 database keeps its existing name and ID.
+2. Add `https://choice-four.jevplay.games/api/auth/discord/callback` as an OAuth redirect URI, point the interactions endpoint and the Activity URL mapping at `choice-four.jevplay.games`, and run `npm run discord:register` to rename the `/play` game choice.
+3. Replace the old custom domain with a redirect rule: `connect-four.jevplay.games/*` → 301 → `https://choice-four.jevplay.games/$1`, preserving the query string. Then remove the old route and `LEGACY_ORIGINS`.
+
+Stored identifiers do not change: v1 replay hashes keep the `connect-four` domain string, replay exports stay `jev-arcade-replay/1`, and `jev-connect-four-audit/1` exports still verify alongside new `jev-choice-four-audit/1` ones.

@@ -91,11 +91,11 @@ test('local opponent first works at Hard difficulty; analysis toggle hides panel
 // "real server" tests load the page from the actual dev server with no TypeSafe key and no Discord credentials.
 // "fixture" tests serve the same page but answer /api/me, /api/matches and /api/logout from the test, to reach the
 // configured and signed-in states without secrets or a provider. They prove the page's behaviour; they are not
-// evidence of a live JEV or Discord flow.
+// evidence of a live Jev or Discord flow.
 // "server-shaped" fixtures go one step further: /api/matches requests from the page are answered by the repository's real
 // Worker handler (server/worker.js) running in this Node process on an in-memory database with the offline stub provider
 // from tests/helpers.js. The response bodies are therefore the server's own, but the signed-in user is a database row
-// created by the test: this is still offline fixture evidence, not Discord OAuth, a typed JEV call or the deployed server.
+// created by the test: this is still offline fixture evidence, not Discord OAuth, a typed Jev call or the deployed server.
 const real=inline?{skip:'needs the served page and a real server'}:{};
 const meFixture=(extra={})=>({user:null,contexts:[],csrf:'fixture-csrf',activeMatchId:null,jevConfigured:true,discordConfigured:true,isAdmin:false,model:'jev-1.13.0',privacy:{clientTelemetry:'opt-in',auditRetentionDays:90},...extra});
 const player={id:'fixture-user',displayName:'Fixture Player'};
@@ -137,22 +137,22 @@ const ranked=page=>page.evaluate(()=>{const box=document.getElementById('ranked'
     action:action.hidden?null:action.textContent,describedBy:box.getAttribute('aria-describedby'),starting:document.getElementById('human-disc').disabled};});
 test('real server: the ranked control is labelled Ranked match and says why it is unavailable',real,async()=>{
   const {page,context,errors}=await openPage();
-  await page.waitForFunction(()=>document.getElementById('ranked-note').textContent.includes('no JEV connection configured'));
+  await page.waitForFunction(()=>document.getElementById('ranked-note').textContent.includes('no Jev connection configured'));
   const state=await ranked(page);
   assert.equal(state.label,'Ranked match');assert.equal(state.ariaDisabled,'true');assert.equal(state.checked,false);assert.equal(state.action,null);
-  assert.equal(state.describedBy,'ranked-note');assert.match(state.note,/no JEV connection configured/);assert.match(state.note,/operator/);
+  assert.equal(state.describedBy,'ranked-note');assert.match(state.note,/no Jev connection configured/);assert.match(state.note,/operator/);
   assert.doesNotMatch(await page.evaluate(()=>document.body.textContent),/official/i,'no Official wording left on the page');
   await page.locator('#ranked').focus();assert.equal(await page.evaluate(()=>document.activeElement.id),'ranked','unavailable control stays keyboard-focusable');
   await page.keyboard.press('Space');assert.equal(await page.locator('#ranked').isChecked(),false);
   assert.match(await page.locator('#notice').textContent(),/Ranked match is unavailable/);
   assert.deepEqual(errors,[]);await context.close();
 });
-test('fixture: JEV configured, guest, local practice offers Switch to JEV, then Connect Discord',real,async()=>{
+test('fixture: Jev configured, guest, local practice offers Switch to Jev, then Connect Discord',real,async()=>{
   const {page,context,fixture,errors}=await fixturePage(meFixture());await settled(page,fixture);
   assert.equal(fixture.posts[0].ranked,false,'the automatic first game is never ranked');
   await page.selectOption('#mode','local');
   let state=await ranked(page);
-  assert.equal(state.ariaDisabled,'true');assert.match(state.note,/needs the JEV opponent and a Discord account/);assert.equal(state.action,'Switch to JEV');
+  assert.equal(state.ariaDisabled,'true');assert.match(state.note,/needs the Jev opponent and a Discord account/);assert.equal(state.action,'Switch to Jev');
   await page.locator('#ranked-action').focus();await page.keyboard.press('Enter');
   assert.equal(await page.locator('#mode').inputValue(),'jev');
   state=await ranked(page);
@@ -164,17 +164,17 @@ test('fixture: JEV configured, guest, local practice offers Switch to JEV, then 
 test('fixture: Discord not configured gives an operator-facing reason and no dead button',real,async()=>{
   const {page,context,fixture,errors}=await fixturePage(meFixture({discordConfigured:false}));await settled(page,fixture);
   const state=await ranked(page);
-  assert.equal(state.ariaDisabled,'true');assert.equal(state.action,null);assert.match(state.note,/no Discord sign-in configured/);assert.match(state.note,/Unranked JEV practice works/);
+  assert.equal(state.ariaDisabled,'true');assert.equal(state.action,null);assert.match(state.note,/no Discord sign-in configured/);assert.match(state.note,/Unranked Jev practice works/);
   assert.deepEqual(errors,[]);await context.close();
 });
-test('fixture: JEV not configured, even for a signed-in player, is explained as an operator setting',real,async()=>{
+test('fixture: Jev not configured, even for a signed-in player, is explained as an operator setting',real,async()=>{
   const {page,context,fixture,errors}=await fixturePage(meFixture({user:player,jevConfigured:false}));
   await page.waitForFunction(()=>!document.getElementById('new-game').disabled);await page.waitForFunction(()=>document.getElementById('identity').textContent==='Fixture Player');
   const state=await ranked(page);
-  assert.equal(state.ariaDisabled,'true');assert.equal(state.action,null);assert.match(state.note,/no JEV connection configured/);
+  assert.equal(state.ariaDisabled,'true');assert.equal(state.action,null);assert.match(state.note,/no Jev connection configured/);
   assert.equal(fixture.posts.length,0,'local mode never calls the match API');assert.deepEqual(errors,[]);await context.close();
 });
-test('fixture: a signed-in JEV player chooses ranked before starting, with keyboard alone',real,async()=>{
+test('fixture: a signed-in Jev player chooses ranked before starting, with keyboard alone',real,async()=>{
   const {page,context,fixture,errors}=await fixturePage(meFixture({user:player}));await settled(page,fixture);
   assert.equal(fixture.posts[0].ranked,false,'signing in does not start a ranked match by itself');
   let state=await ranked(page);
@@ -191,7 +191,7 @@ test('fixture: the control refreshes on mode change, sign-out and returning to t
   await page.check('#ranked');assert.equal((await ranked(page)).checked,true);
   await page.selectOption('#mode','local');
   let state=await ranked(page);
-  assert.equal(state.ariaDisabled,'true');assert.equal(state.checked,false,'leaving JEV clears the tick');assert.equal(state.starting,false);assert.equal(state.action,'Switch to JEV');
+  assert.equal(state.ariaDisabled,'true');assert.equal(state.checked,false,'leaving Jev clears the tick');assert.equal(state.starting,false);assert.equal(state.action,'Switch to Jev');
   await page.selectOption('#mode','jev');state=await ranked(page);
   assert.equal(state.ariaDisabled,'false');assert.equal(state.checked,false,'the tick does not come back by itself');
   await page.check('#ranked');
@@ -221,7 +221,7 @@ test('fixture: short landscape (844x390) keeps the ranked explanation and action
   assert.match(await page.locator('#ranked-note').textContent(),/needs a Discord account/);
   await page.screenshot({path:resolve(root,'test-results','ranked-844x390-guest.png'),fullPage:true});
   await page.selectOption('#mode','local');
-  assert.equal(await page.locator('#ranked-action').textContent(),'Switch to JEV');assert.equal(await page.locator('#ranked-action').isVisible(),true);
+  assert.equal(await page.locator('#ranked-action').textContent(),'Switch to Jev');assert.equal(await page.locator('#ranked-action').isVisible(),true);
   await page.locator('#ranked-action').focus();await page.keyboard.press('Enter');
   assert.equal(await page.locator('#mode').inputValue(),'jev','the visible action works from the keyboard at 844x390');
   assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1),true);
@@ -264,7 +264,7 @@ test('fixture: configuration lost and restored, and a restored (bfcache) page, r
   const restored=()=>page.evaluate(()=>window.dispatchEvent(new PageTransitionEvent('pageshow',{persisted:true})));
   await page.check('#ranked');
   fixture.me=meFixture({user:player,jevConfigured:false});await restored();
-  await page.waitForFunction(()=>document.getElementById('ranked-note').textContent.includes('no JEV connection configured'));
+  await page.waitForFunction(()=>document.getElementById('ranked-note').textContent.includes('no Jev connection configured'));
   let state=await ranked(page);assert.equal(state.ariaDisabled,'true');assert.equal(state.checked,false,'a tick cannot survive lost configuration');
   fixture.me=meFixture({user:player});await restored();
   await page.waitForFunction(()=>document.getElementById('ranked').getAttribute('aria-disabled')==='false');
@@ -338,7 +338,7 @@ async function assertResumedOnce({page,fixture,match,errors}){
   await page.waitForTimeout(300);
   assert.equal(matchReads(fixture.shaped,match.id).length,1,'the existing server match is read exactly once');
   assert.equal(fixture.shaped.starts().length,0,'no match was created');assert.equal(fixture.posts.length,0);
-  assert.equal(await page.locator('#mode').inputValue(),'jev','JEV mode, not the default local fallback');
+  assert.equal(await page.locator('#mode').inputValue(),'jev','Jev mode, not the default local fallback');
   assert.equal((await ranked(page)).ariaDisabled,'false','ranked is available to the signed-in player');
   assert.equal(await page.locator('#identity').textContent(),'Newer Player','the newest identity wins');
   assert.equal(await page.locator('#resign').isDisabled(),false);
@@ -455,13 +455,13 @@ test('fixture (server-shaped): a stalled first identity read times out, and star
 test('fixture: a stalled identity read with nothing queued says the status is unknown, continues in local practice, and a later refresh still goes out',real,async()=>{
   const {page,context,fixture,errors}=await fixturePage(meFixture(),{holdMe:1});// read 1 is never answered, later reads are
   for(const until=Date.now()+DEADLINE_WAIT;!(await ranked(page)).note.includes('status is unknown');){if(Date.now()>until)throw new Error('the deadline never produced the unknown state');await page.waitForTimeout(100);}
-  let state=await ranked(page);assert.equal(state.ariaDisabled,'true');assert.equal(state.action,'Check again');assert.doesNotMatch(state.note,/no JEV connection/,'a failed read is not reported as a missing JEV key');
+  let state=await ranked(page);assert.equal(state.ariaDisabled,'true');assert.equal(state.action,'Check again');assert.doesNotMatch(state.note,/no Jev connection/,'a failed read is not reported as a missing Jev key');
   assert.equal(fixture.meGets,1);assert.equal(await page.locator('#verification-badge').textContent(),'LOCAL PRACTICE');assert.equal(await page.locator('#turn-label').textContent(),'Your turn','a local game started')
   assert.ok(await columnsEnabled(page)>0,'local practice is playable');assert.equal(fixture.posts.length,0,'no server game was requested on an unknown identity');
   await page.locator('#ranked-action').focus();await page.keyboard.press('Enter');// keyboard-operable retry
   await arrived(page,fixture,2);
   await page.waitForFunction(()=>!document.getElementById('ranked-note').textContent.includes('status is unknown'));
-  state=await ranked(page);assert.equal(state.action,'Switch to JEV','the accepted identity replaced the unknown state');
+  state=await ranked(page);assert.equal(state.action,'Switch to Jev','the accepted identity replaced the unknown state');
   await visibleReturn(page);await arrived(page,fixture,3);// a tab return refreshes as usual afterwards
   assert.deepEqual(errors,[]);await context.close();
 });

@@ -84,5 +84,8 @@ export function boardRows(state, jevDisc = 2) {
   return Array.from({length: 6}, (_, i) => state.board.slice((5 - i) * 7, (6 - i) * 7)
     .map(v => v === 0 ? '.' : v === jevDisc ? 'J' : 'H').join(''));
 }
-export const connectFour = {id: 'connect-four', rulesVersion: RULES_VERSION, createInitialState,
+/* gameId. 'connect-four' is the pre-rename id: create-match requests from older clients send it, and the
+   jev-arcade-replay/1 format and the v1 replay hash domain (server/audit.js) are defined with it. */
+export const GAME_ID = 'choice-four', LEGACY_GAME_ID = 'connect-four', GAME_IDS = [GAME_ID, LEGACY_GAME_ID];
+export const choiceFour = {id: GAME_ID, rulesVersion: RULES_VERSION, createInitialState,
   getLegalActions, applyAction, getOutcome, serialize, deserialize, replay};

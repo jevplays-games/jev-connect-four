@@ -1,6 +1,7 @@
 import http from 'node:http';
 import {fileURLToPath} from 'node:url';
 import {readFile,mkdir,writeFile} from 'node:fs/promises';
+import {existsSync} from 'node:fs';
 import {resolve,extname,sep} from 'node:path';
 import {randomBytes} from 'node:crypto';
 import {localDatabase} from './local-db.mjs';
@@ -18,7 +19,9 @@ const port=Number(process.env.PORT||8787),host=prod?(process.env.HOST||'0.0.0.0'
 if(!origin)throw new Error('Production requires APP_ORIGIN.');
 if(!prod&&!['localhost','127.0.0.1','[::1]'].includes(new URL(origin).hostname))throw new Error('Local dev binds to loopback only. Use the Worker deployment for hosting.');
 const mime={'.html':'text/html; charset=utf-8','.js':'application/javascript; charset=utf-8','.css':'text/css; charset=utf-8','.svg':'image/svg+xml','.png':'image/png','.json':'application/json','.woff2':'font/woff2','.txt':'text/plain; charset=utf-8'};
-const db=localDatabase(resolve(dataDir,prod?(process.env.DB_FILE||'connect-four.sqlite'):'game.sqlite'));
+// Production default is choice-four.sqlite; a host still holding the pre-rename file keeps using it until it is moved.
+const legacyDbFile=resolve(dataDir,'connect-four.sqlite'),dbFile=process.env.DB_FILE||(existsSync(legacyDbFile)&&!existsSync(resolve(dataDir,'choice-four.sqlite'))?legacyDbFile:'choice-four.sqlite');
+const db=localDatabase(resolve(dataDir,prod?dbFile:'game.sqlite'));
 const env={...process.env,APP_ORIGIN:origin,APP_SECRET:secret,DB:db,...(prod?{}:{DEV_LOCAL:'1'}),
   ASSETS:{async fetch(request){
     const pathname=new URL(request.url).pathname;
@@ -43,6 +46,6 @@ const server=http.createServer(async(req,res)=>{
   }catch(e){console.error('Local transport error:',e.message);res.writeHead(500);res.end('Transport error');}
 });
 function ReadableStreamFromRequest(req){return new ReadableStream({start(controller){req.on('data',c=>controller.enqueue(c));req.on('end',()=>controller.close());req.on('error',e=>controller.error(e));}});}
-server.listen(port,host,()=>console.log(`Connect Four: ${origin}\nJEV: ${env.TYPESAFE_API_KEY?'configured':'not configured — local practice available'}\nDiscord: ${env.DISCORD_CLIENT_ID?'configured':'not configured'}`));
+server.listen(port,host,()=>console.log(`Choice Four: ${origin}\nJev: ${env.TYPESAFE_API_KEY?'configured':'not configured — local practice available'}\nDiscord: ${env.DISCORD_CLIENT_ID?'configured':'not configured'}`));
 const cleanup=setInterval(()=>worker.scheduled({},env).catch(e=>console.error('Cleanup failed:',e.message)),60000);cleanup.unref();
 for(const signal of ['SIGINT','SIGTERM'])process.on(signal,()=>server.close(()=>{clearInterval(cleanup);db.close();process.exit(0);}));

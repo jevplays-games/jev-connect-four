@@ -1,6 +1,6 @@
 # Headless benchmark protocol
 
-The runner uses the same rules, candidate policy and JEV adapter as the game. It does not launch a browser or affect production leaderboards.
+The runner uses the same rules, candidate policy and Jev adapter as the game. It does not launch a browser or affect production leaderboards.
 
 ## Offline smoke run
 
@@ -12,7 +12,7 @@ Supported policy: `local`, `jev`, `random`. Supported opponent: `random`, `heuri
 
 `heuristic` uses the normal local policy, `search` uses the hard local policy, and `local` uses the selected difficulty. These are distinct reference configurations, not independent perfect solvers. Local and seeded random logical actions are reproducible; IDs, timestamps and latency are not guaranteed bitwise identical.
 
-## Live JEV, deliberately gated
+## Live Jev, deliberately gated
 
 ```sh
 npm run bench -- --pairs 10 --policy jev --opponent search --difficulty jev --allow-paid --out bench/live
@@ -34,7 +34,7 @@ Generic tables use the application convention `human = baseline`, `jev = tested 
 
 `oracle.mjs` is a separate bounded minimax implementation sharing the rules engine. Default maximum is eight empty cells and 200,000 visited nodes. It reports an exact result only if the relevant search completes; otherwise it explicitly reports unknown. `--oracle-empty 0..10` controls evaluation eligibility.
 
-Selected-action optimality and value loss are measured only at completely searched endgames. A run with no such positions has **zero oracle coverage**, not perfect oracle accuracy. This is not a complete independent full-game solver or proof of unbeatable JEV play.
+Selected-action optimality and value loss are measured only at completely searched endgames. A run with no such positions has **zero oracle coverage**, not perfect oracle accuracy. This is not a complete independent full-game solver or proof of unbeatable Jev play.
 
 ## Interpretation and next experiments
 

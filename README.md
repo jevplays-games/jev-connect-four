@@ -1,14 +1,30 @@
-<p align="center"><img src="assets/banner.jpg" alt="Pixel-art robot Jev dropping a disc into a Connect Four grid at a table in a neon cyan and magenta arcade" width="100%"></p>
+<p align="center"><img src="assets/banner.jpg" alt="Pixel-art robot Jev dropping a disc into a four-in-a-row grid at a table in a neon arcade" width="100%"></p>
 
-# Connect Four vs JEV
+<div align="center">
 
-A playable, framework-free Connect Four application with a server-side JEV adapter, Discord identity and launch context, authoritative matches, community leaderboards, and detailed research analytics.
+# Choice Four
 
-**Local practice works immediately without API keys or an npm install.** Live JEV and Discord features are implemented but require your credentials and application configuration. No live external integration or Cloudflare deployment was exercised while assembling this package. See [verification](docs/VERIFICATION.md).
+**Four in a row against Jev: every Jev turn is a structured Choice over seven columns, and every move is on the record.**
 
-![Connect Four interface](docs/previews/desktop.png)
+![Play: choice-four.jevplay.games](https://img.shields.io/badge/Play-choice--four.jevplay.games-F386A1?style=flat-square&labelColor=1E1E1E)
+![Node: 22.16+](https://img.shields.io/badge/Node-22.16%2B-E551BA?style=flat-square&labelColor=1E1E1E)
+![Runtime deps: 0](https://img.shields.io/badge/Runtime%20deps-0-F386A1?style=flat-square&labelColor=1E1E1E)
+![License: MIT](https://img.shields.io/badge/License-MIT-DEDEDE?style=flat-square&labelColor=1E1E1E)
 
-## Run locally
+[Quick start](#quick-start) · [How it works](#how-it-works) · [Included](#included) · [Analytics](#analytics) · [Tests and tools](#tests-and-tools) · [Repository layout](#repository-layout) · [Contributing](#contributing)
+
+</div>
+
+---
+
+Choice Four is a playable, framework-free four-in-a-row game with a server-side Jev adapter, Discord identity and launch context, authoritative matches, community leaderboards and detailed research analytics. Legal moves and tactical facts come from the rules engine; Jev scores the remaining candidates, and the page shows the evidence behind each decision.
+
+> [!NOTE]
+> **Local practice works immediately without API keys or an npm install.** Live Jev and Discord features are implemented but require your credentials and application configuration. No live external integration or Cloudflare deployment was exercised while assembling this package. See [verification](docs/VERIFICATION.md).
+
+![Choice Four interface](docs/previews/desktop.png)
+
+## Quick start
 
 Install Node.js **22.16 or newer**, extract this directory, then run:
 
@@ -20,9 +36,9 @@ Open **http://localhost:8787**. On Windows, `start-local.bat` runs the same comm
 
 This server binds to loopback, not a public interface. Use the documented Worker deployment for public hosting. Opening `index.html` directly from the filesystem is not supported because ES modules and Workers need an HTTP origin.
 
-### Enable actual JEV
+### Enable actual Jev
 
-Copy `.env.example` to `.env`, set `TYPESAFE_API_KEY`, keep or deliberately change the pinned `JEV_MODEL`, and restart. The page then permits **JEV · server verified** games. All model requests go through the backend; the key never goes to the browser.
+Copy `.env.example` to `.env`, set `TYPESAFE_API_KEY`, keep or deliberately change the pinned `JEV_MODEL`, and restart. The page then permits **Jev · server verified** games. All model requests go through the backend; the key never goes to the browser.
 
 ```sh
 # Windows PowerShell: Copy-Item .env.example .env
@@ -30,21 +46,45 @@ cp .env.example .env
 npm start
 ```
 
-Set Discord credentials only after configuring the redirect URI and application. Guest JEV play does not require Discord. Ranked play does. The local heuristic is never represented as a model call or silently used to finish a ranked match.
+Set Discord credentials only after configuring the redirect URI and application. Guest Jev play does not require Discord. Ranked play does. The local heuristic is never represented as a model call or silently used to finish a ranked match.
 
 ### Ranked match
 
-**Ranked match** (beside New game) puts a game on the leaderboard. It is available only to a Discord-signed-in player using the **JEV** opponent on a server that has both configured; the server enforces the same rules whatever the page shows. The page always says why the box is unavailable and what to do next:
+**Ranked match** (beside New game) puts a game on the leaderboard. It is available only to a Discord-signed-in player using the **Jev** opponent on a server that has both configured; the server enforces the same rules whatever the page shows. The page always says why the box is unavailable and what to do next:
 
 | Situation | Guidance shown |
 |---|---|
 | Server has no `TYPESAFE_API_KEY` | Unavailable: the operator must add the key. Only local practice runs. |
-| Opponent is Local practice | Ranked needs JEV and a Discord account; **Switch to JEV** button. |
-| JEV, guest, Discord configured | Needs a Discord account; **Connect Discord** button. |
-| JEV, guest, Discord not configured | Unavailable: the operator must configure Discord. Unranked JEV practice works. |
-| JEV, signed in | Tick the box before **New game**; the rules (server-assigned side, no undo, 24-hour deadline, resignation is a loss) are shown. |
+| Opponent is Local practice | Ranked needs Jev and a Discord account; **Switch to Jev** button. |
+| Jev, guest, Discord configured | Needs a Discord account; **Connect Discord** button. |
+| Jev, guest, Discord not configured | Unavailable: the operator must configure Discord. Unranked Jev practice works. |
+| Jev, signed in | Tick the box before **New game**; the rules (server-assigned side, no undo, 24-hour deadline, resignation is a loss) are shown. |
 
 The box stays keyboard-focusable while unavailable (`aria-disabled`), its reason is its accessible description, and trying to tick it announces the reason. The page never starts a ranked match on its own: the automatic first game on page load is always unranked, so a ranked game needs an explicit tick and New game. Sign-in, sign-out, mode changes, returning to the tab and restoring a cached page all refresh the box; a refresh that is due while a game request is still pending waits until it settles (it never resends the game request). Identity requests never overlap: a request without a session cookie makes the server create a guest session with its own `Set-Cookie` and CSRF token, so two at once could leave the browser with one session's cookie and the page with the other's token. A refresh asked for while one is in flight is sent after it (several share one trailing request), and startup (mode choice, resuming an active server match, redeeming a launch ticket) waits for the newest answer, so a tab return during page load cannot leave the page in local practice, send a ticket without its CSRF token, or start a game the server rejects with `CSRF_REJECTED`. Only that read-only identity request has a ten-second deadline: a stalled one fails (startup follows the next identity request if one is queued, otherwise it continues in local practice and the Ranked match note says the status is unknown, with a Check again button) and a later refresh is sent normally. Game and provider requests have no client deadline and are never retried or abandoned by it. The reason and its button stay visible wherever the box is visible, including short landscape screens; only the picture-in-picture frame hides the box and its guidance together.
+
+## How it works
+
+```mermaid
+%%{init: {"themeVariables": {"lineColor": "#E551BA"}}}%%
+flowchart LR
+  B[Browser: board, analytics, replay] -->|move + CSRF| W[Worker API]
+  W --> R[Authoritative rules + tactical search]
+  R -->|Jev mode| J[Structured Choice request to Jev]
+  J --> V[Validate scores and rank candidates]
+  R -->|local practice| V
+  V --> E[Hash-linked event journal]
+  E --> D[(D1 / SQLite)]
+  D --> L[Leaderboards]
+  E --> X[Exports and offline audit]
+  class B,X ink
+  class W,R,V,E pink
+  class J,D,L grey
+  classDef ink fill:#1E1E1E,stroke:#1E1E1E,color:#FEFEFE
+  classDef pink fill:#F386A1,stroke:#1E1E1E,color:#1E1E1E
+  classDef grey fill:#DEDEDE,stroke:#1E1E1E,color:#1E1E1E
+```
+
+Read [architecture and trust boundaries](docs/ARCHITECTURE.md) for the full flow.
 
 ## Included
 
@@ -80,7 +120,7 @@ npm run report -- examples/mock-provider-match-audit.json --out analytics-report
 npm run bench -- --pairs 10 --policy local --opponent random --out bench/output
 ```
 
-The included audit fixture uses **mocked provider responses**, not live JEV. The included benchmark is **local versus seeded random**, not a JEV strength claim.
+The included audit fixture uses **mocked provider responses**, not live Jev, and was exported before the rename (`jev-connect-four-audit/1`); it still verifies, as do new `jev-choice-four-audit/1` exports. The included benchmark is **local versus seeded random**, not a Jev strength claim.
 
 For browser tests or deployment tooling:
 
@@ -90,24 +130,25 @@ npx playwright install chromium
 npm run test:browser
 ```
 
-Dependency installation was unavailable in the assembly environment. The two direct development dependencies are pinned, but no generated lockfile is included. Generate and review a lockfile in your environment before using `npm ci` in a controlled release pipeline. Local play, native tests, offline audit, reports and local benchmarks do not require those development packages.
+Local play, native tests, offline audit, reports and local benchmarks do not require the development packages.
 
-## Documentation
+### Documentation
 
 - [Architecture and trust boundaries](docs/ARCHITECTURE.md)
 - [Analytics and event dictionary](docs/ANALYTICS.md)
 - [API reference](docs/API.md)
-- [Local and Cloudflare/Discord deployment](docs/DEPLOYMENT.md)
+- [Local and Cloudflare/Discord deployment](docs/DEPLOYMENT.md), including the hostname rename cutover
+- [Discord Activity](docs/ACTIVITY.md)
 - [Security, privacy and limitations](docs/SECURITY.md)
 - [Executed verification and remaining gates](docs/VERIFICATION.md)
 - [Benchmark protocol](bench/README.md)
 - [Official documentation references](docs/SOURCES.md)
 
-## Repository map
+## Repository layout
 
 ```text
 public/       Vanilla page, styling, controller, shared rules/policy/analytics
-server/       Worker routes, auth, JEV adapter, matches, audit, leaderboards
+server/       Worker routes, auth, Jev adapter, matches, audit, leaderboards
 migrations/   D1/SQLite schema
 scripts/      Local server, Discord registration, offline audit and report
 bench/        Seeded paired runner and bounded reference endgame solver
@@ -116,6 +157,15 @@ docs/         Setup, metric dictionary, architecture, evidence and previews
 examples/     Clearly labeled mock audit/report and actual offline benchmark
 ```
 
-## Before a public launch
+### Before a public launch
 
-Configure real secrets and D1, complete Discord application setup, verify a live JEV response against the pinned schema, smoke-test a genuine Discord launch and ranked match, review hosting CPU/cost limits, and establish backups and operational alerting. Do not treat the included local verification as an independent security audit or live-service certification.
+Configure real secrets and D1, complete Discord application setup, verify a live Jev response against the pinned schema, smoke-test a genuine Discord launch and ranked match, review hosting CPU/cost limits, and establish backups and operational alerting. Do not treat the included local verification as an independent security audit or live-service certification.
+
+## Contributing
+
+Issues and pull requests are welcome. Run `npm test` before opening a pull request, and do not change stored identifiers (the v1 replay hash domain, the `jev-arcade-replay/1` format, audit formats, `rulesVersion`, `policyVersion` or the model-facing request) without a version bump: matches recorded before the Choice Four rename must keep verifying. Choice Four is inspired by the classic four-in-a-row game; see [NOTICE](NOTICE). Licensed under the [MIT License](LICENSE).
+
+<p align="center">
+<sub>A jevplay.games game · Steward: CompleteTech LLC · MIT licensed<br>
+Not an official TypeSafe AI publication; the pink, ink and pixel-window styling is a nod to <a href="https://typesafe.ai">typesafe.ai</a>. Jev, System One and TypeSafe are their respective owners' names.</sub>
+</p>

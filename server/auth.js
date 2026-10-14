@@ -149,13 +149,13 @@ export async function discordInteraction(request,env) {
   if(i.type===1)return json({type:1});
   assert(i.application_id===env.DISCORD_CLIENT_ID,403,'WRONG_DISCORD_APPLICATION');
   const message=content=>json({type:4,data:{flags:64,content}});
-  if(i.type!==2||i.data?.name!=='play')return message('Use /play to launch Connect Four.');
+  if(i.type!==2||i.data?.name!=='play')return message('Use /play to launch Choice Four.');
   if(i.context!==0||!i.guild_id||!i.channel_id||i.channel?.type!==0||!i.member?.user?.id||i.authorizing_integration_owners?.['0']!==i.guild_id)
     return message('Launch from a regular text channel in a server where this application is installed.');
   const rawTicket=randomToken(),timestamp=now(env);
   try {await run(env,`INSERT INTO tickets(token_hash,kind,discord_id,guild_id,channel_id,interaction_id,issued_at,expires_at)
     VALUES(?,?,?,?,?,?,?,?)`,await sha256(rawTicket),'launch',i.member.user.id,i.guild_id,i.channel_id,i.id,timestamp,timestamp+600000);}
   catch(e){if(/UNIQUE/i.test(e.message))return message('This launch was already handled. Run /play again for a fresh link.');throw e;}
-  return json({type:4,data:{flags:64,content:'Play Connect Four against JEV. Sign in with the same Discord account. This community link expires in 10 minutes.',
-    components:[{type:1,components:[{type:2,style:5,label:'Play Connect Four',url:`${env.APP_ORIGIN}/#launch=${rawTicket}`}]}]}});
+  return json({type:4,data:{flags:64,content:'Play Choice Four against Jev. Sign in with the same Discord account. This community link expires in 10 minutes.',
+    components:[{type:1,components:[{type:2,style:5,label:'Play Choice Four',url:`${env.CANONICAL_ORIGIN||env.APP_ORIGIN}/#launch=${rawTicket}`}]}]}});
 }

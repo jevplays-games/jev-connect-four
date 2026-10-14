@@ -16,7 +16,7 @@ Package assembled 2026-09-22. Evidence files are under `docs/verification/`; scr
 | Sample full audit | All four checks pass: hash chain, rules, decision provenance, outcome; **40 events / 19 accepted moves** |
 | Report generation | HTML, JSON summary and eight CSV tables produced from the mock provider sample |
 
-The sample audit used a deterministic mock TypeSafe provider. Its successful provenance check means consistency with recorded fixture answers, **not proof of live JEV inference**. Fixture output is labeled accordingly.
+The sample audit used a deterministic mock TypeSafe provider. Its successful provenance check means consistency with recorded fixture answers, **not proof of live Jev inference**. Fixture output is labeled accordingly.
 
 ## Native coverage
 
@@ -36,8 +36,8 @@ Browser engine: `/usr/bin/chromium`; available Playwright core build `1.57.0-bet
 
 ## Unverified deployment gates
 
-No real TypeSafe key, real Discord OAuth exchange, public Discord interaction delivery, Cloudflare deployment or remote D1 instance was used. No real JEV strength, latency, calibration or billing measurement is claimed. Mocked integration tests do not replace those live checks.
+No real TypeSafe key, real Discord OAuth exchange, public Discord interaction delivery, Cloudflare deployment or remote D1 instance was used. No real Jev strength, latency, calibration or billing measurement is claimed. Mocked integration tests do not replace those live checks.
 
 Registry DNS was unavailable, so development dependencies were not installed and no lockfile was generated. The zero-dependency local runtime and native tests did run. Wrangler compatibility, actual cloud limits/costs and production operational controls require verification after configuration. See `DEPLOYMENT.md` for the live smoke checklist.
 
-No claim is made that every reachable Connect Four state was enumerated, that the agent is unbeatable, that rankings establish unaided human play, or that this package received an independent security audit.
+No claim is made that every reachable Choice Four state was enumerated, that the agent is unbeatable, that rankings establish unaided human play, or that this package received an independent security audit.

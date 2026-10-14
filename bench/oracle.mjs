@@ -1,5 +1,5 @@
 /** Exact endgame minimax when the entire remaining tree fits the declared limit.
- * This is a reference algorithm, not a full-game Connect Four solver or a production opponent. */
+ * This is a reference algorithm, not a full-game four-in-a-row solver or a production opponent. */
 import {getLegalActions,applyAction} from '../public/rules.js';
 export function solveEndgame(state,disc=state.toMove,{maxEmpty=8,maxNodes=200000}={}) {
   if(42-state.ply>maxEmpty)return {exact:false,reason:'outside_endgame_window',nodes:0,bounds:[-1,1],optimalColumns:null};

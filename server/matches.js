@@ -1,10 +1,10 @@
-import {createInitialState,applyAction,replay,getOutcome} from '../public/rules.js';
+import {createInitialState,applyAction,replay,getOutcome,GAME_IDS} from '../public/rules.js';
 import {profileFor,moveMetrics,POLICY_VERSION} from '../public/policy.js';
 import {prepareDecision,executeDecision} from './jev.js';
 import {one,rows,loadMatch,loadEvents,insertMatch,commitMatch,chainEvents,consumeQuota,countOperation} from './db.js';
 import {assert,HttpError,canonical,sha256,now,randomToken,safeConfig,hmac} from './util.js';
 import {contextFor} from './auth.js';
-import {auditExport} from './audit.js';
+import {auditExport,AUDIT_FORMAT} from './audit.js';
 export async function ownedMatch(env,session,id) {
   const m=await loadMatch(env,id);
   assert((m.user_id&&m.user_id===session.user_id)||(!m.user_id&&m.guest_session===session.token_hash),404,'MATCH_NOT_FOUND');
@@ -23,7 +23,7 @@ export function viewMatch(row) {
 }
 export function exportMatch(row,events,clientMetrics=[]) {
   const d=row.data;
-  return {format:'jev-connect-four-audit/1',exportedAt:new Date().toISOString(),match:{id:d.id,manifest:d.manifest,
+  return {format:AUDIT_FORMAT,exportedAt:new Date().toISOString(),match:{id:d.id,manifest:d.manifest,
     state:d.state,actions:d.actions,humanDisc:d.humanDisc,difficulty:d.difficulty,opponentVersion:d.opponentVersion,
     status:d.status,result:d.result??null,adjudication:d.adjudication??null,ranked:d.ranked,eligible:!!d.eligible,
     startedAt:d.startedAt,finishedAt:d.finishedAt??null,eventSeq:row.event_seq,eventHead:row.event_head,
@@ -55,7 +55,7 @@ async function addMove(env,data,column,actor,decisionId=null) {
 export async function createMatch(env,session,body,key,request) {
   const difficulty=body.difficulty||'normal';try{profileFor(difficulty);}catch{throw new HttpError(400,'INVALID_DIFFICULTY');}
   assert(body.ranked===undefined||typeof body.ranked==='boolean',400,'INVALID_RANKED_FLAG');
-  assert(!body.gameId||body.gameId==='connect-four',400,'UNSUPPORTED_GAME');
+  assert(!body.gameId||GAME_IDS.includes(body.gameId),400,'UNSUPPORTED_GAME'); // 'connect-four' alias kept for older clients
   const ranked=body.ranked===true;
   assert(!ranked||session.user_id,401,'DISCORD_LOGIN_REQUIRED');
   assert(env.TYPESAFE_API_KEY,503,'JEV_NOT_CONFIGURED');

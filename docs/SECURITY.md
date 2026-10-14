@@ -22,11 +22,11 @@ A launch proves recent Discord participation, not continuous membership/permissi
 
 The provider side effect and D1 write are not one atomic transaction. Crash windows can leave a prepared request without a recorded result or complete billing evidence. This is surfaced as interruption/unknown billing. There is no promise of exactly-once external inference.
 
-These automated tests are not an independent penetration test. Wrangler/D1 production behavior, live OAuth, live interactions, live JEV responses, production TLS/domain configuration and hosting abuse controls need operator verification.
+These automated tests are not an independent penetration test. Wrangler/D1 production behavior, live OAuth, live interactions, live Jev responses, production TLS/domain configuration and hosting abuse controls need operator verification.
 
 ## Privacy and retention
 
-JEV receives normalized board state, exact game features and bounded typed questions only. It receives no Discord identities, names, channel information, session values, chats or OAuth credentials. The application stores only minimal account identifiers and display names, community IDs needed for attribution, game evidence and keyed quota identifiers.
+Jev receives normalized board state, exact game features and bounded typed questions only. It receives no Discord identities, names, channel information, session values, chats or OAuth credentials. The application stores only minimal account identifiers and display names, community IDs needed for attribution, game evidence and keyed quota identifiers.
 
 Optional client telemetry is disabled by default and contains whitelisted bounded numerical measurements plus a small input-method enumeration. No third-party analytics SDK, session recorder or tracking pixel is included. Client data never determines a result.
 

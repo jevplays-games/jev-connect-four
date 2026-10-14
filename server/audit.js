@@ -2,10 +2,13 @@ import {createInitialState,applyAction,getOutcome,boardRows} from '../public/rul
 import {canonical,sha256} from './util.js';
 import {GENESIS} from './db.js';
 import {validateResponse,rankAnswers} from './jev.js';
-/** Offline verification uses recorded evidence only. It never contacts JEV or Discord. */
+/** New exports use AUDIT_FORMAT. The pre-rename name stays readable so existing exports keep verifying. */
+export const AUDIT_FORMAT='jev-choice-four-audit/1',AUDIT_FORMATS=[AUDIT_FORMAT,'jev-connect-four-audit/1'];
+/** Offline verification uses recorded evidence only. It never contacts Jev or Discord. */
 export async function auditExport(exp) {
   const errors=[],checks={hashChain:false,rules:false,decisionProvenance:false,outcome:false},m=exp.match;
   if(!m||!Array.isArray(exp.events))return {ok:false,checks,errors:['INVALID_EXPORT']};
+  if(/-audit\/\d+$/.test(exp.format||'')&&!AUDIT_FORMATS.includes(exp.format))return {ok:false,checks,errors:['UNSUPPORTED_FORMAT']};
   if(m.diagnosticEvidence==='pruned')return {ok:false,checks,errors:['DIAGNOSTIC_EVIDENCE_PRUNED'],replayOnly:true};
   let prev=GENESIS,seq=0,state=createInitialState();const actions=[],plans=new Map(),decisions=new Map();
   const acceptedDecisions=new Set();
@@ -68,6 +71,7 @@ export async function auditExport(exp) {
   checks.decisionProvenance=!errors.some(e=>/DECISION|PREPAR|REQUEST|RESPONSE|OPPONENT|INELIGIBLE|RANKING|TACTICAL|PROVENANCE/.test(e));
   checks.outcome=!errors.some(e=>/RESULT|ADJUDICATION|INTERRUPTED/.test(e));
   return {ok:!errors.length,checks,errors,eventCount:seq,moves:actions.length,replayHash:await sha256(canonical([
+    // Hash domain for rulesVersion 1. Keep the pre-rename literal: every stored v1 replay hash is computed over it.
     'connect-four',1,m.opponentVersion,m.humanDisc,actions])),
     limitation:'Checks internal consistency against the recorded database tip; not an independently signed attestation.'};
 }

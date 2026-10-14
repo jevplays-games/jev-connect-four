@@ -1,8 +1,9 @@
 {
-  "name": "jev-connect-four",
+  "name": "jev-choice-four",
   "version": "1.0.0",
   "private": true,
-  "description": "Vanilla Connect Four with JEV, Discord, authoritative replay and research analytics",
+  "description": "Choice Four, human vs Jev: vanilla four-in-a-row with Discord, authoritative replay and research analytics",
+  "license": "MIT",
   "type": "module",
   "engines": {
     "node": ">=22.16.0"
@@ -18,8 +19,8 @@
     "report": "node scripts/report.mjs",
     "discord:register": "node --env-file-if-exists=.env scripts/register-discord.mjs",
     "deploy": "wrangler deploy",
-    "db:remote": "wrangler d1 migrations apply jev-connect-four --remote",
-    "db:local": "wrangler d1 migrations apply jev-connect-four --local"
+    "db:remote": "wrangler d1 migrations apply DB --remote",
+    "db:local": "wrangler d1 migrations apply DB --local"
   },
   "devDependencies": {
     "wrangler": "4.35.0",
