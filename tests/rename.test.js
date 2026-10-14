@@ -5,7 +5,7 @@ import {environment,client} from './helpers.js';
 import {auditExport,AUDIT_FORMAT} from '../server/audit.js';
 import {GAME_ID,LEGACY_GAME_ID,choiceFour} from '../public/rules.js';
 import {randomToken,utf8,now} from '../server/util.js';
-import worker from '../server/worker.js';
+import worker,{servedOrigins} from '../server/worker.js';
 const legacyFixture=async()=>JSON.parse(await readFile(new URL('../examples/mock-provider-match-audit.json',import.meta.url),'utf8'));
 const hex=bytes=>[...new Uint8Array(bytes)].map(x=>x.toString(16).padStart(2,'0')).join('');
 
@@ -68,6 +68,26 @@ test('a malformed LEGACY_ORIGINS entry is ignored and logged instead of failing 
   const other=await send('http://[::1]:8787');assert.equal(other.status,400);assert.equal((await other.json()).error,'HOST_REJECTED');
   assert.ok(warned.some(w=>w.includes('LEGACY_ORIGIN_IGNORED')&&w.includes('not a url')),warned.join('\n'));
   assert.ok(warned.some(w=>w.includes('javascript:alert(1)')),warned.join('\n'));
+});
+
+test('D9: LEGACY_ORIGINS entries that are not a bare origin are refused, not normalised',async t=>{
+  const legacy='http://127.0.0.1:8787';
+  for(const bad of ['https://user:pw@evil.example','https://evil.example#@connect-four.jevplay.games','https://evil.example/path','https://evil.example?q=1','https://*.jevplay.games']){
+    const env=environment({LEGACY_ORIGINS:`${bad},${legacy}`});t.after(()=>env.DB.close());
+    const warned=[];const warn=t.mock.method(console,'warn',(...args)=>warned.push(args.join(' ')));
+    const send=origin=>worker.fetch(new Request(origin+'/api/health'),env,{waitUntil(){}});
+    assert.deepEqual(servedOrigins(env),[env.APP_ORIGIN,legacy],bad);
+    for(const host of ['https://evil.example','https://x.jevplay.games']){
+      const res=await send(host);assert.equal(res.status,400,`${bad} admitted ${host}`);assert.equal((await res.json()).error,'HOST_REJECTED');
+    }
+    assert.equal((await send(env.APP_ORIGIN)).status,200,bad);
+    assert.equal((await send(legacy)).status,200,bad);
+    assert.ok(warned.some(w=>w.includes('LEGACY_ORIGIN_IGNORED')&&w.includes(JSON.stringify({entry:bad}))),warned.join('\n'));
+    warn.mock.restore();
+  }
+  // A bare origin, with or without one trailing slash, is still accepted.
+  assert.deepEqual(servedOrigins({APP_ORIGIN:'https://choice-four.jevplay.games',LEGACY_ORIGINS:'https://connect-four.jevplay.games, https://connect-four.jevplay.games/'}),
+    ['https://choice-four.jevplay.games','https://connect-four.jevplay.games','https://connect-four.jevplay.games']);
 });
 
 test('a Discord launch received on the legacy host links to the canonical Choice Four origin',async t=>{

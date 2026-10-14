@@ -81,9 +81,13 @@ async function operatorAnalytics(env,session) {
 export function servedOrigins(env) {
   // A malformed legacy entry is skipped and logged, so a config typo cannot take down the canonical host.
   const legacy=(env.LEGACY_ORIGINS||'').split(',').map(o=>o.trim()).filter(Boolean).flatMap(o=>{
-    let origin='null';try{origin=new URL(o).origin;}catch{}
-    if(origin==='null'||!/^https?:/.test(origin)){console.warn('LEGACY_ORIGIN_IGNORED',JSON.stringify(o));return [];}
-    return [origin];
+    // D9: only a bare origin is accepted. The entry (less one trailing '/') must equal url.origin and hold no
+    // '@', '?', '#' or '*', so 'https://user:pw@evil.example' is refused rather than normalised to evil.example.
+    let u=null;try{u=new URL(o);}catch{}
+    if(!u||!/^https?:$/.test(u.protocol)||o.replace(/\/$/,'')!==u.origin||/[@?#*]/.test(o)){
+      console.warn('LEGACY_ORIGIN_IGNORED',JSON.stringify({entry:o}));return [];
+    }
+    return [u.origin];
   });
   return [new URL(env.APP_ORIGIN).origin,...legacy];
 }
