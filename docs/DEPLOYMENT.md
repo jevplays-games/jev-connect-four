@@ -109,4 +109,8 @@ The game moved from `connect-four.jevplay.games` to `choice-four.jevplay.games`.
 2. Add `https://choice-four.jevplay.games/api/auth/discord/callback` as an OAuth redirect URI, point the interactions endpoint and the Activity URL mapping at `choice-four.jevplay.games`, and run `npm run discord:register` to rename the `/play` game choice.
 3. Replace the old custom domain with a redirect rule: `connect-four.jevplay.games/*` → 301 → `https://choice-four.jevplay.games/$1`, preserving the query string. Then remove the old route and `LEGACY_ORIGINS`.
 
+Session cookies are scoped to the host that set them, so after the 301 a player who was signed in on `connect-four.jevplay.games` arrives on `choice-four.jevplay.games` without a session and must sign in with Discord again. Their account, matches and leaderboard standing are unaffected (same D1 database). Guest practice state in the old host's browser storage does not carry over either.
+
+A malformed `LEGACY_ORIGINS` entry is skipped with a `LEGACY_ORIGIN_IGNORED` warning in the Worker log rather than failing requests; check the log after editing it.
+
 Stored identifiers do not change: v1 replay hashes keep the `connect-four` domain string, replay exports stay `jev-arcade-replay/1`, and `jev-connect-four-audit/1` exports still verify alongside new `jev-choice-four-audit/1` ones.

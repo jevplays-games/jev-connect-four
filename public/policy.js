@@ -190,7 +190,7 @@ export function localDecision(state, difficulty = 'normal', options = {}) {
   return {action: {type:'drop',column:ranked[0].column}, source:'local', candidates,
     latencyMs: performance.now()-started, candidateCount: candidates.length, eligibleCount: eligible.length,
     factors: {}, usage: null, request: null, response: null, model: null,
-    reason: 'Deterministic local heuristic, not JEV'};
+    reason: 'Deterministic local heuristic, not Jev'};
 }
 /** Immediate tactical opportunities only; no unsupported claims of optimal play. */
 export function moveMetrics(before, after, column) {

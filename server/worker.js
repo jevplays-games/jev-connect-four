@@ -79,7 +79,13 @@ async function operatorAnalytics(env,session) {
 }
 /** APP_ORIGIN is canonical; LEGACY_ORIGINS (comma-separated) are old hostnames still served until cutover. */
 export function servedOrigins(env) {
-  return [env.APP_ORIGIN,...(env.LEGACY_ORIGINS||'').split(',')].map(o=>o.trim()).filter(Boolean).map(o=>new URL(o).origin);
+  // A malformed legacy entry is skipped and logged, so a config typo cannot take down the canonical host.
+  const legacy=(env.LEGACY_ORIGINS||'').split(',').map(o=>o.trim()).filter(Boolean).flatMap(o=>{
+    let origin='null';try{origin=new URL(o).origin;}catch{}
+    if(origin==='null'||!/^https?:/.test(origin)){console.warn('LEGACY_ORIGIN_IGNORED',JSON.stringify(o));return [];}
+    return [origin];
+  });
+  return [new URL(env.APP_ORIGIN).origin,...legacy];
 }
 export async function route(request,env) {
   const url=new URL(request.url),path=url.pathname;

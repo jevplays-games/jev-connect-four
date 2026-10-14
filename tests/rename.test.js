@@ -59,6 +59,17 @@ test('the legacy hostname is still served as itself; unknown hosts are refused',
   assert.equal(started.status,201,JSON.stringify(started.data));
 });
 
+test('a malformed LEGACY_ORIGINS entry is ignored and logged instead of failing every request',async t=>{
+  const legacy='http://127.0.0.1:8787',env=environment({LEGACY_ORIGINS:`not a url, javascript:alert(1) ,${legacy}`});t.after(()=>env.DB.close());
+  const warned=[];t.mock.method(console,'warn',(...args)=>warned.push(args.join(' ')));
+  const send=origin=>worker.fetch(new Request(origin+'/api/health'),env,{waitUntil(){}});
+  assert.equal((await send(env.APP_ORIGIN)).status,200);
+  assert.equal((await send(legacy)).status,200);
+  const other=await send('http://[::1]:8787');assert.equal(other.status,400);assert.equal((await other.json()).error,'HOST_REJECTED');
+  assert.ok(warned.some(w=>w.includes('LEGACY_ORIGIN_IGNORED')&&w.includes('not a url')),warned.join('\n'));
+  assert.ok(warned.some(w=>w.includes('javascript:alert(1)')),warned.join('\n'));
+});
+
 test('a Discord launch received on the legacy host links to the canonical Choice Four origin',async t=>{
   const legacy='http://127.0.0.1:8787',env=environment({LEGACY_ORIGINS:legacy});t.after(()=>env.DB.close());
   const keys=await crypto.subtle.generateKey({name:'Ed25519'},true,['sign','verify']);
