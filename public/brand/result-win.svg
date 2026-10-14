@@ -1,21 +1,16 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
-  <title>Win</title>
-  <defs>
-    <linearGradient id="coin" x1="0.15" y1="0.1" x2="0.85" y2="0.95">
-      <stop offset="0" stop-color="#fff3c4"/>
-      <stop offset="0.45" stop-color="#f5c451"/>
-      <stop offset="1" stop-color="#b8801c"/>
-    </linearGradient>
-    <linearGradient id="star" x1="0.2" y1="0.1" x2="0.8" y2="0.95">
-      <stop offset="0" stop-color="#ffffff"/>
-      <stop offset="1" stop-color="#ffe9a6"/>
-    </linearGradient>
-  </defs>
-  <circle cx="33.5" cy="35" r="26" fill="#05060c" fill-opacity="0.4"/>
-  <circle cx="32" cy="33.5" r="26" fill="#8a5c10"/>
-  <circle cx="32" cy="31" r="26" fill="url(#coin)"/>
-  <circle cx="32" cy="31" r="20.5" fill="none" stroke="#fff6d6" stroke-opacity="0.55" stroke-width="1.6"/>
-  <path d="M32 15.5l4.9 9.9 10.9 1.6-7.9 7.7 1.9 10.9-9.8-5.2-9.8 5.2 1.9-10.9-7.9-7.7 10.9-1.6z" fill="#8a5c10" transform="translate(0.8 1.6)"/>
-  <path d="M32 15.5l4.9 9.9 10.9 1.6-7.9 7.7 1.9 10.9-9.8-5.2-9.8 5.2 1.9-10.9-7.9-7.7 10.9-1.6z" fill="url(#star)"/>
-  <path d="M13 22A21 21 0 0 1 30 8.6" fill="none" stroke="#ffffff" stroke-opacity="0.75" stroke-width="2.4" stroke-linecap="round"/>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" shape-rendering="crispEdges">
+<title>Win</title>
+<path fill="#1E1E1E" d="M8 9h51v49H8zM5 6h51v49H5z"/>
+<path fill="#DEDEDE" d="M6 18h49v36H6z"/>
+<path fill="#FEFEFE" d="M6 18h49v2H8v34H6z"/>
+<path fill="#F386A1" d="M8 20h47v34H8z"/>
+<g fill="#FEFEFE">
+<rect x="36" y="14" width="6" height="1"/>
+<rect x="46" y="10" width="2" height="2"/>
+<rect x="50" y="10" width="2" height="2"/>
+<rect x="48" y="12" width="2" height="2"/>
+<rect x="46" y="14" width="2" height="2"/>
+<rect x="50" y="14" width="2" height="2"/>
+</g>
+<path fill="#1E1E1E" d="M16 34h6v6h6v-6h6v-6h6v-6h6v12h-6v6h-6v6H22v-6h-6z"/>
 </svg>

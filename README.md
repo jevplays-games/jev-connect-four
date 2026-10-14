@@ -1,4 +1,4 @@
-<p align="center"><img src="assets/banner.jpg" alt="Pixel-art robot Jev dropping a disc into a four-in-a-row grid at a table in a neon arcade" width="100%"></p>
+<p align="center"><img src="assets/banner.png" alt="Pink pixel-art banner for Choice Four: the Jev robot holds a disc beside a seven-column board where a magenta diagonal marks four in a row, next to a CHOICE window weighing columns" width="100%"></p>
 
 <div align="center">
 
@@ -22,7 +22,7 @@ Choice Four is a playable, framework-free four-in-a-row game with a server-side 
 > [!NOTE]
 > **Local practice works immediately without API keys or an npm install.** Live Jev and Discord features are implemented but require your credentials and application configuration. No live external integration or Cloudflare deployment was exercised while assembling this package. See [verification](docs/VERIFICATION.md).
 
-![Choice Four interface](docs/previews/desktop.png)
+![Choice Four mid-game on desktop: an ink board with pink human discs and paper Jev discs marked J, beside the decision panel comparing Jev's candidate columns](docs/previews/desktop.png)
 
 ## Quick start
 
