@@ -11,6 +11,14 @@ Copyright (c) 2016 The Inter Project Authors
 
 Vendored at `public/brand/inter-var.woff2`. Full license text at `public/brand/OFL.txt`.
 
+## VT323
+
+SIL Open Font License 1.1
+
+Copyright 2011, The VT323 Project Authors (peter.hull@oikoi.com)
+
+Vendored at `public/brand/vt323.woff2`. Full license text at `public/brand/OFL-VT323.txt`.
+
 ## @discord/embedded-app-sdk
 
 MIT License

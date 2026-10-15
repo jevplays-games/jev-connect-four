@@ -15,7 +15,7 @@ Ranked eligibility, idempotency keys, revision checks and decision provenance ar
 ## Developer Portal settings
 
 1. Enable **Activities** for the application (Activities > Settings).
-2. URL Mappings: prefix `/` -> target `connect-four.jevplay.games` (hostname only).
+2. URL Mappings: prefix `/` -> target `choice-four.jevplay.games` (hostname only). Change this mapping before the pre-rename hostname is redirected.
 3. Discord creates a **Primary Entry Point** command when Activities are enabled. `npm run discord:register` only POSTs the `/play` command (create-or-update by name) and does not bulk overwrite, so the entry point survives. If you ever switch to a bulk `PUT`, include the existing Entry Point command or it will be deleted.
 
 `DISCORD_CLIENT_ID` and `DISCORD_CLIENT_SECRET` must be set (the same values the OAuth login uses). No new variables are needed.

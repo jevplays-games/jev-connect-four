@@ -2,7 +2,7 @@
 
 ## Scope
 
-This implementation captures the full application-visible match and decision trail, with detailed derived summaries and exports. “Exhaustive” refers to that instrumented surface, **not** exhaustive search of the entire Connect Four game tree, collection of private user activity, or access to the model's hidden reasoning.
+This implementation captures the full application-visible match and decision trail, with detailed derived summaries and exports. “Exhaustive” refers to that instrumented surface, **not** exhaustive search of the entire Choice Four game tree, collection of private user activity, or access to the model's hidden reasoning.
 
 The authoritative records are server-owned. The browser cannot submit a score. Local practice has its own explicitly unverified evidence. Client performance reporting is off by default, numerical, opt-in, and irrelevant to results.
 
@@ -45,13 +45,13 @@ match.started
   move.accepted (human)
   decision.prepared
   decision.completed OR decision.failed
-  move.accepted (JEV, only after a valid completed decision)
+  move.accepted (Jev, only after a valid completed decision)
   ...
 match.completed OR match.adjudicated OR service.interrupted
 match.verified (completed/adjudicated only)
 ```
 
-An opening JEV turn can follow `match.started` immediately. A single eligible tactical candidate records a completed `tactical` decision and zero model requests. Invalid/stale browser commands do not become game moves; fixed-label operation counters record rejection categories. The rejection body is not logged wholesale.
+An opening Jev turn can follow `match.started` immediately. A single eligible tactical candidate records a completed `tactical` decision and zero model requests. Invalid/stale browser commands do not become game moves; fixed-label operation counters record rejection categories. The rejection body is not logged wholesale.
 
 Each persisted event contains `schemaVersion`, match ID, monotonically increasing sequence, UTC milliseconds, type, payload, previous hash and SHA-256 hash over canonical JSON. Monotonic `performance.now()` measures in-process durations. Sequence numbers, not UTC time or cross-process monotonic clocks, establish match ordering.
 
@@ -109,13 +109,13 @@ Do not infer full-game optimality from these indicators. A strategic sacrifice, 
 
 Each legal root move records an interval from the side-to-move opponent's perspective: `[-1,-1]` proven loss, `[0,0]` draw, `[1,1]` win, or a possibly wider unresolved interval. Search cutoffs remain unknown, not draws.
 
-If a proven winner exists, retain proven winners. Otherwise remove proven losing candidates only if alternatives remain. Easy mode uses only immediate-win support. Local fallback also applies an explicitly local positional heuristic; it is not logged as JEV.
+If a proven winner exists, retain proven winners. Otherwise remove proven losing candidates only if alternatives remain. Easy mode uses only immediate-win support. Local fallback also applies an explicitly local positional heuristic; it is not logged as Jev.
 
 Node counts, leaf counts, cutoffs, maximum observed depth and per-candidate budget exhaustion are exported. Depth and budgets are profile-specific and recorded in the manifest. Candidate exclusion reasons and legal/eligible candidate count distributions make invisible tactical assistance measurable.
 
 ## Typed answer analysis
 
-JEV scores five ordered levels for each factor. The adapter validates finite numeric values, required keys, pinned model, probability normalization, legend and score consistency. It normalizes the score into 0…1 and applies the versioned profile weights.
+Jev scores five ordered levels for each factor. The adapter validates finite numeric values, required keys, pinned model, probability normalization, legend and score consistency. It normalizes the score into 0…1 and applies the versioned profile weights.
 
 `utilityGap` is selected composite utility minus runner-up utility among the ranked candidates. It is not an advantage in discs, Elo points, percentage-point win probability or a calibrated margin. The deterministic tie order is columns 3,2,4,1,5,0,6.
 
@@ -141,13 +141,13 @@ estimated charge = reported tokens × configured USD per million / 1,000,000
 
 The example input rate is an editable planning value, not a guarantee of your current bill. Missing or invalid responses may still have incurred provider charges. `attemptsWithUnknownBilling` preserves this uncertainty. A false `allModelPricesConfigured` flag means the estimate must not be treated as a complete cost. Output pricing is configurable separately and defaults to zero. Hosting, storage, failed-call invoices, taxes and other charges are excluded.
 
-Zero model calls in local play are real zero calls; they do not imply free live JEV service. The fixture's mock token counts are synthetic and labeled accordingly.
+Zero model calls in local play are real zero calls; they do not imply free live Jev service. The fixture's mock token counts are synthetic and labeled accordingly.
 
 ## Retention, privacy and integrity
 
 Diagnostic events default to 90 days. Afterwards signed-in users retain compact replay/result records, but deep evidence is marked `pruned` and full offline audit returns an explicit incompleteness result. Guest matches are removed after the diagnostic retention cutoff. Client metrics expire after seven days. Expired tickets, grants, sessions and counters are cleaned up. Scheduled cleanup is bounded per invocation for pending deadline processing.
 
-Account deletion cascades owned matches and evidence. Backups, logs outside this application and hosting-provider retention need a separate operator policy. No chat content, message history, email address, raw IP address or user-generated text is sent to JEV. Abuse quotas use keyed daily identifiers rather than storing raw IPs in game analytics.
+Account deletion cascades owned matches and evidence. Backups, logs outside this application and hosting-provider retention need a separate operator policy. No chat content, message history, email address, raw IP address or user-generated text is sent to Jev. Abuse quotas use keyed daily identifiers rather than storing raw IPs in game analytics.
 
 The event chain detects corruption or changes relative to the retained tip. It does **not** prove to a third party that a database administrator has not rewritten both the history and its tip. Live provider calls and database writes also cannot form one atomic transaction; a process crash can leave an attempted request without its response. The implementation marks that interruption rather than filling gaps with fabricated evidence.
 
@@ -160,6 +160,6 @@ npm run report -- first-match-audit.json second-match-audit.json --out report
 npm run report -- examples/offline-benchmark/runs.json --out benchmark-report
 ```
 
-`report.html` is a self-contained visual summary except for adjacent CSV/JSON download links. It does not contact JEV, Discord or a tracking service. The report's generic official W/L/D totals remain zero for unranked benchmark runs; the benchmark's own `summary.json` reports policy-perspective outcomes separately.
+`report.html` is a self-contained visual summary except for adjacent CSV/JSON download links. It does not contact Jev, Discord or a tracking service. The report's generic official W/L/D totals remain zero for unranked benchmark runs; the benchmark's own `summary.json` reports policy-perspective outcomes separately.
 
 To create a complete longitudinal report beyond the recent-history cap, paginate `/api/history`, export each owned match while its diagnostics are retained, and pass those exports to the report command. No hidden cap is presented as all-time exhaustive data.

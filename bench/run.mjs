@@ -15,7 +15,7 @@ if(!Number.isInteger(pairs)||pairs<1||pairs>1000||!Number.isInteger(seed))throw 
 if(!['local','jev','random'].includes(policy)||!['random','heuristic','search','jev'].includes(opponent))throw new Error('Unsupported policy or opponent.');
 if(!Number.isInteger(oracleEmpty)||oracleEmpty<0||oracleEmpty>10)throw new Error('--oracle-empty must be 0..10.');
 profileFor(difficulty);
-if((policy==='jev'||opponent==='jev')&&(!process.argv.includes('--allow-paid')||!process.env.TYPESAFE_API_KEY))throw new Error('Live JEV benchmarks require TYPESAFE_API_KEY and explicit --allow-paid.');
+if((policy==='jev'||opponent==='jev')&&(!process.argv.includes('--allow-paid')||!process.env.TYPESAFE_API_KEY))throw new Error('Live Jev benchmarks require TYPESAFE_API_KEY and explicit --allow-paid.');
 const rng=initial=>{let x=initial>>>0||1;return()=>{x^=x<<13;x^=x>>>17;x^=x<<5;return(x>>>0)/4294967296;};};
 const env={TYPESAFE_API_KEY:process.env.TYPESAFE_API_KEY,JEV_MODEL:process.env.JEV_MODEL||'jev-1.13.0'};
 const exports=[],results=[],oracleRows=[];
@@ -83,7 +83,7 @@ const report={schemaVersion:1,createdAt:new Date().toISOString(),configuration:{
   pairedBootstrap95:bootstrap.length?{low:bootstrap[24],high:bootstrap[974],groups:pairScores.length,replicates:1000}:null,
   endgameOracle:{evaluated:oracleRows.length,exact:exact.length,optimalActionRate:exact.length?exact.filter(r=>r.optimal).length/exact.length:null,
     valueLoss:distribution(exact.map(r=>r.valueLoss))},telemetry:summary,
-  caveats:['Offline local policy runs are not measurements of JEV.','Human labels in generic tables refer to the baseline agent in this harness.',
+  caveats:['Offline local policy runs are not measurements of Jev.','Human labels in generic tables refer to the baseline agent in this harness.',
     'Oracle comparisons cover only completely searched endgames, not full-game optimality.','Opening-prefix moves are marked; do not count them as agent decisions.',
     'Timing and IDs are not deterministic; seeded logical play is deterministic for local policies.','This is a bounded smoke benchmark, not evidence of population-level skill or a publishable evaluation by itself.']};
 await writeFile(resolve(out,'summary.json'),JSON.stringify(report,null,2));

@@ -36,6 +36,8 @@ const FACTORS = {
 export async function prepareDecision(state,difficulty,model,options={}) {
   const start=performance.now(), {candidates,eligible,profile}=buildCandidates(state,difficulty,state.toMove,options);
   if(!eligible.length) throw new Error('NO_LEGAL_CANDIDATES');
+  // Model protocol, pinned with POLICY_VERSION: these strings (including 'JEV') are what the pinned model was
+  // validated against and are recorded in every request hash. Changing them is a policy change, not a rename.
   const encoded={game:'connect-four',rulesVersion:1,perspective:'JEV',
     notation:{J:'JEV disc',H:'human disc','.':'empty',columns:'0 through 6 left to right',boardRows:'top to bottom',coordinateRows:'0 through 5 bottom to top'},
     boardTopToBottom:boardRows(state,state.toMove),candidates:Object.fromEntries(eligible.map(c=>[c.id,c]))};

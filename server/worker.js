@@ -6,6 +6,7 @@ import {leaderboard,signCursor,readCursor} from './leaderboard.js';
 import {summarize,flattenEvidence,csv,distribution} from '../public/analytics.js';
 import {auditExport} from './audit.js';
 import {activityConfig,createActivitySession} from './activity.js';
+import {GAME_ID,LEGACY_GAME_ID} from '../public/rules.js';
 
 // Discord shows an Activity inside its own iframe. Only a page loaded with Discord's frame_id may be framed, and only by Discord.
 export const ACTIVITY_FRAME_ANCESTORS='frame-ancestors https://discord.com https://ptb.discord.com https://canary.discord.com';
@@ -76,11 +77,29 @@ async function operatorAnalytics(env,session) {
     knownOutputTokens:attempts.reduce((s,a)=>s+(a.usage?.output_tokens||0),0),
     noUserIdentities:true};
 }
+/** APP_ORIGIN is canonical; LEGACY_ORIGINS (comma-separated) are old hostnames still served until cutover. */
+export function servedOrigins(env) {
+  // A malformed legacy entry is skipped and logged, so a config typo cannot take down the canonical host.
+  const legacy=(env.LEGACY_ORIGINS||'').split(',').map(o=>o.trim()).filter(Boolean).flatMap(o=>{
+    // D9: only a bare origin is accepted. The entry (less one trailing '/') must equal url.origin and hold no
+    // '@', '?', '#' or '*', so 'https://user:pw@evil.example' is refused rather than normalised to evil.example.
+    let u=null;try{u=new URL(o);}catch{}
+    if(!u||!/^https?:$/.test(u.protocol)||o.replace(/\/$/,'')!==u.origin||/[@?#*]/.test(o)){
+      console.warn('LEGACY_ORIGIN_IGNORED',JSON.stringify({entry:o}));return [];
+    }
+    return [u.origin];
+  });
+  return [new URL(env.APP_ORIGIN).origin,...legacy];
+}
 export async function route(request,env) {
   const url=new URL(request.url),path=url.pathname;
   if(!path.startsWith('/api/'))return env.ASSETS.fetch(request);
   assert(env.DB&&typeof env.APP_SECRET==='string'&&env.APP_SECRET.length>=32,503,'SERVER_CONFIGURATION_REQUIRED');
-  assert(url.origin===new URL(env.APP_ORIGIN).origin,400,'HOST_REJECTED');
+  const canonicalOrigin=new URL(env.APP_ORIGIN).origin;
+  assert(servedOrigins(env).includes(url.origin),400,'HOST_REJECTED');
+  // A legacy hostname (connect-four.jevplay.games until cutover) keeps working as itself: sign-in callbacks,
+  // cookies and Origin checks follow the host the request arrived on. Links sent to Discord use the canonical origin.
+  env={...env,APP_ORIGIN:url.origin,CANONICAL_ORIGIN:canonicalOrigin};
   if(path==='/api/health'&&request.method==='GET')return json({ok:true,version:'1.0.0'});
   if(path==='/api/discord/interactions'&&request.method==='POST')return discordInteraction(request,env);
   if(path==='/api/activity/config'&&request.method==='GET')return activityConfig(env);
@@ -121,18 +140,18 @@ export async function route(request,env) {
     let row=await ownedMatch(env,session,id);
     if(!action&&request.method==='GET'){row=await expireMatch(env,row);return json(viewMatch(row));}
     if(action==='telemetry'&&request.method==='POST')return json(await clientTelemetry(env,session,row,await readJSON(request)));
-    if(action==='replay'&&request.method==='GET')return json({format:'jev-arcade-replay/1',game:'connect-four',rulesVersion:1,
+    if(action==='replay'&&request.method==='GET')return json({format:'jev-arcade-replay/1',game:LEGACY_GAME_ID,rulesVersion:1,
       columnIndexBase:0,initialState:'empty-7x6',humanDisc:row.data.humanDisc,opponentVersion:row.data.opponentVersion,
       actions:row.data.actions,end:{kind:row.data.adjudication?'adjudication':'board',outcome:row.data.result,reason:row.data.adjudication??null}});
     if(['export','analytics'].includes(action)&&request.method==='GET') {
       const exp=await getExport(env,row);
       if(action==='analytics')return json({summary:summarize([exp]),tables:flattenEvidence([exp]),audit:await auditExport(exp)});
       const format=url.searchParams.get('format')||'json';
-      if(format==='json')return json(exp,200,{'Content-Disposition':`attachment; filename="${id}-audit.json"`});
-      if(format==='ndjson')return new Response(exp.events.map(e=>JSON.stringify(e)).join('\n')+'\n',{headers:{'Content-Type':'application/x-ndjson','Content-Disposition':`attachment; filename="${id}-events.ndjson"`}});
+      if(format==='json')return json(exp,200,{'Content-Disposition':`attachment; filename="${GAME_ID}-${id}-audit.json"`});
+      if(format==='ndjson')return new Response(exp.events.map(e=>JSON.stringify(e)).join('\n')+'\n',{headers:{'Content-Type':'application/x-ndjson','Content-Disposition':`attachment; filename="${GAME_ID}-${id}-events.ndjson"`}});
       if(format==='csv') {
         const table=url.searchParams.get('table')||'moves',tables=flattenEvidence([exp]);assert(Object.hasOwn(tables,table),400,'INVALID_TABLE');
-        return new Response(csv(tables[table]),{headers:{'Content-Type':'text/csv; charset=utf-8','Content-Disposition':`attachment; filename="${id}-${table}.csv"`}});
+        return new Response(csv(tables[table]),{headers:{'Content-Type':'text/csv; charset=utf-8','Content-Disposition':`attachment; filename="${GAME_ID}-${id}-${table}.csv"`}});
       }
       throw new HttpError(400,'INVALID_EXPORT_FORMAT');
     }

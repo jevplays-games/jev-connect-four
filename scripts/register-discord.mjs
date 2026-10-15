@@ -6,8 +6,8 @@ const tokenResponse=await fetch('https://discord.com/api/oauth2/token',{method:'
 if(!tokenResponse.ok)throw new Error(`Application credential exchange failed: HTTP ${tokenResponse.status}`);
 const token=(await tokenResponse.json()).access_token;
 const endpoint=`https://discord.com/api/v10/applications/${id}${guild?`/guilds/${guild}`:''}/commands`;
-const command={name:'play',description:'Play Connect Four against JEV with verified community scores',type:1,
-  options:[{type:3,name:'game',description:'Game to launch',required:false,choices:[{name:'Connect Four',value:'connect-four'}]}],
+const command={name:'play',description:'Play Choice Four against Jev with verified community scores',type:1,
+  options:[{type:3,name:'game',description:'Game to launch',required:false,choices:[{name:'Choice Four',value:'choice-four'}]}],
   ...(!guild?{integration_types:[0],contexts:[0]}:{})};
 const response=await fetch(endpoint,{method:'POST',headers:{Authorization:`Bearer ${token}`,'Content-Type':'application/json'},body:JSON.stringify(command)});
 if(!response.ok)throw new Error(`Command registration failed: HTTP ${response.status}`);

@@ -16,7 +16,7 @@ API documentation was consulted during implementation preparation on 2026-09-22.
 | https://developers.cloudflare.com/workers/static-assets/ | Assets and Worker deployment shape |
 | https://developers.cloudflare.com/workers/runtime-apis/web-crypto/ | Native cryptographic primitives |
 
-The user-supplied “JEV Single-Page Game — Architecture & Implementation Planning Prompt,” followed by the Connect Four engineering plan and request to implement exhaustive analytics, establishes the product requirements. The implementation keeps the source's core boundary: JEV proposes; the rules engine validates; Discord establishes identity/context; the backend owns trust; only eligible verified results enter rankings.
+The user-supplied “Jev Single-Page Game — Architecture & Implementation Planning Prompt,” followed by the game's original four-in-a-row engineering plan and request to implement exhaustive analytics, establishes the product requirements. The implementation keeps the source's core boundary: Jev proposes; the rules engine validates; Discord establishes identity/context; the backend owns trust; only eligible verified results enter rankings.
 
 ## Requirement trace
 
@@ -24,7 +24,7 @@ The user-supplied “JEV Single-Page Game — Architecture & Implementation Plan
 |---|---|
 | Vanilla single-page game, accessibility | `public/index.html`, `game.css`, `app.js`, browser tests |
 | Shared deterministic rules | `public/rules.js`, rules tests, replay/audit |
-| Structured inspectable JEV | `public/policy.js`, `server/jev.js`, provider/policy tests |
+| Structured inspectable Jev | `public/policy.js`, `server/jev.js`, provider/policy tests |
 | Four difficulties | Frozen `PROFILES` and manifest in policy/matches |
 | Explicit fallback | Local Worker with local/practice labels; interruption leaves official result ineligible |
 | Discord identity/context | `server/auth.js`, registration script, real-crypto/stub-OAuth tests |

@@ -1,17 +1,23 @@
 {
   "$schema": "node_modules/wrangler/config-schema.json",
-  "name": "jev-connect-four",
+  "name": "jev-choice-four",
   "main": "server/worker.js",
-  "routes": [{ "pattern": "connect-four.jevplay.games", "custom_domain": true }],
+  // connect-four.jevplay.games stays routed here until the 301 redirect rule replaces it at cutover.
+  "routes": [
+    { "pattern": "choice-four.jevplay.games", "custom_domain": true },
+    { "pattern": "connect-four.jevplay.games", "custom_domain": true }
+  ],
   "compatibility_date": "2025-09-17",
   "assets": {"directory": "./public", "binding": "ASSETS", "run_worker_first": true},
   "d1_databases": [{
+    // Owner decision: the existing D1 database keeps its pre-rename name. No recreate or migration.
     "binding": "DB", "database_name": "jev-connect-four",
     "database_id": "b37a85ff-5eb9-431d-88a1-9a73e20b86d1",
     "migrations_dir": "migrations"
   }],
   "vars": {
-    "APP_ORIGIN": "https://connect-four.jevplay.games",
+    "APP_ORIGIN": "https://choice-four.jevplay.games",
+    "LEGACY_ORIGINS": "https://connect-four.jevplay.games",
     "JEV_MODEL": "jev-1.13.0",
     "JEV_INPUT_USD_PER_MILLION": "0.042",
     "GUEST_DAILY_MATCH_LIMIT": "3",

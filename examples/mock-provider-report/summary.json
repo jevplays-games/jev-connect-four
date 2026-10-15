@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "generatedAt": "2026-09-22T05:28:36.315Z",
+  "generatedAt": "2026-10-14T22:07:35.425Z",
   "coverage": {
     "matches": 1,
     "diagnosticMatches": 1,
@@ -372,7 +372,7 @@
   ],
   "eventCount": 40,
   "notes": [
-    "Official outcome aggregates exclude practice and interruptions.",
+    "Ranked outcome aggregates exclude practice and interruptions.",
     "Cohorts must be compared separately by difficulty, opponent version and starting side.",
     "Server turn elapsed time includes human idle time and network delay, not just thinking.",
     "Tactical metrics identify immediate opportunities only, not game-theoretic optimality.",

@@ -4,7 +4,7 @@ All routes are same-origin under `/api`. Browser JSON bodies are limited to 4 Ki
 
 | Route | Method | Purpose |
 |---|---|---|
-| `/health` | GET | Version and application liveness; not a live JEV health check |
+| `/health` | GET | Version and application liveness; not a live Jev health check |
 | `/me` | GET | Identity/guest session, CSRF token, active match, available integrations and contexts |
 | `/me` | DELETE | Authenticated deletion with `{"confirm":"DELETE"}` |
 | `/auth/discord` | GET | Begin browser-bound authorization |
@@ -12,7 +12,7 @@ All routes are same-origin under `/api`. Browser JSON bodies are limited to 4 Ki
 | `/logout` | POST | Revoke current application session |
 | `/discord/interactions` | POST | Signed PING and `/play`; no browser CSRF token |
 | `/context/redeem` | POST | `{ticket}`; stage before sign-in or consume after identity match |
-| `/matches` | POST | Allocate authoritative JEV match |
+| `/matches` | POST | Allocate authoritative Jev match |
 | `/matches/:id` | GET | Owner snapshot and expiry/resume state |
 | `/matches/:id/commands` | POST | Owner drop/resume/resign |
 | `/matches/:id/replay` | GET | Compact legal action sequence and ending/adjudication |
@@ -32,7 +32,7 @@ Creation and commands require an `Idempotency-Key` of 8–100 URL-safe identifie
 {"difficulty":"normal","ranked":false,"humanDisc":1}
 ```
 
-Ranked creation requires Discord login. The backend assigns its starting side. Optional `contextId` must refer to this account's live server-issued proof. `difficulty` is one of `easy`, `normal`, `hard`, `jev`. Provider configuration is server-controlled. All server matches require a JEV key; local practice remains entirely separate.
+Ranked creation requires Discord login. The backend assigns its starting side. Optional `contextId` must refer to this account's live server-issued proof. `difficulty` is one of `easy`, `normal`, `hard`, `jev`. Provider configuration is server-controlled. All server matches require a Jev key; local practice remains entirely separate.
 
 ```json
 {"type":"drop","column":3,"expectedRevision":0,"expectedStateHash":"hash-from-snapshot"}
