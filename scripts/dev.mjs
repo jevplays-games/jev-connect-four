@@ -39,7 +39,11 @@ const server=http.createServer(async(req,res)=>{
     const forwarded=trustProxy?String(headers.get('x-forwarded-for')||'').split(',').pop().trim():'';
     headers.set('x-local-address',forwarded||req.socket.remoteAddress||'loopback');
     const body=['GET','HEAD'].includes(req.method)?undefined:ReadableStreamFromRequest(req);
-    const request=new Request(new URL(req.url,origin),{method:req.method,headers,body,duplex:'half'});
+    // An absolute-form target with credentials (https://user:pw@host/…) or one that does not parse is a bad
+    // request, not a transport fault. Reject it before building the Request (which throws on credentials).
+    let target=null;try{target=new URL(req.url,origin);}catch{}
+    if(!target||target.username||target.password){res.writeHead(400,{'Content-Type':'application/json; charset=utf-8'});res.end(JSON.stringify({error:'BAD_REQUEST_TARGET'}));return;}
+    const request=new Request(target,{method:req.method,headers,body,duplex:'half'});
     const tasks=[],response=await worker.fetch(request,env,{waitUntil:p=>tasks.push(p)});
     res.writeHead(response.status,Object.fromEntries(response.headers));
     res.end(Buffer.from(await response.arrayBuffer()));await Promise.allSettled(tasks);

@@ -117,7 +117,7 @@ function renderDecision(d=match?.lastDecision){$('analysis-body').hidden=!$('sho
   const factors=$('factor-list');factors.replaceChildren();
   for(const [factor,a] of Object.entries(d.factors||{})){const row=make('div','factor-row'),label=make('div',null,factor[0].toUpperCase()+factor.slice(1));label.append(make('small',null,`Model judgment · certainty ${pct(a.confidence)}`));row.append(label,make('b',null,`${fmt(a.score,2)} / 4`));factors.append(row);}
   const selected=candidates.find(c=>c.column===d.action.column);
-  for(const [label,value] of [['Human winning replies',selected?.humanWinningReplies.length??0],['Playable Jev threats',selected?.threats.self.filter(t=>t.playable).length??0],['Search nodes',selected?.search.nodes??0]]){const row=make('div','factor-row'),l=make('div',null,label);l.append(make('small',null,'Engine-computed fact'));row.append(l,make('b',null,fmt(value,0)));factors.append(row);}
+  for(const [label,value] of [['Human winning replies',selected?.humanWinningReplies.length??0],[local||isLocal()?'Playable local-opponent threats':'Playable Jev threats',selected?.threats.self.filter(t=>t.playable).length??0],['Search nodes',selected?.search.nodes??0]]){const row=make('div','factor-row'),l=make('div',null,label);l.append(make('small',null,'Engine-computed fact'));row.append(l,make('b',null,fmt(value,0)));factors.append(row);}
   $('decision-json').textContent=JSON.stringify(d,null,2);
 }
 function localEvent(type,payload){localExport.events.push({schemaVersion:1,matchId:match.id,seq:localExport.events.length+1,type,utcMs:Date.now(),source:'local-unverified',payload});}
@@ -165,7 +165,7 @@ async function sendTelemetry(metrics){if(!match||isLocal()||!$('telemetry-consen
 function checkRemoteStatus(){clearTimeout(pollTimer);if(match?.status==='interrupted')notice(`Jev service interrupted (${match.interruption}). This result is not ranked. Continue as local practice to keep playing.`);
   if(match?.status==='thinking')pollTimer=setTimeout(async()=>{try{const {data}=await api(`/api/matches/${match.id}`);match=data;renderBoard();renderDecision();checkRemoteStatus();}catch{}},1500);
 }
-async function resumeMatch(id=match?.id||identity.activeMatchId||readStorage('c4-active-server-match',null)){if(!id)return;notice('');setBusy(true);try{let {data}=await api(`/api/matches/${id}`);match=data;localExport=null;
+async function resumeMatch(id=match?.id||identity.activeMatchId||readStorage('c4-active-server-match',null),{keepNotice=false}={}){if(!id)return;if(!keepNotice)notice('');setBusy(true);try{let {data}=await api(`/api/matches/${id}`);match=data;localExport=null;
   if(data.status==='active'&&data.state.toMove!==data.humanDisc){data=(await api(`/api/matches/${id}/commands`,{method:'POST',key:uid(),body:{type:'resume'}})).data;match=data;}
   $('mode').value='jev';$('difficulty').value=match.difficulty;syncControls();renderDecision();checkRemoteStatus();
   }catch(error){notice(errorMessage(error));}finally{setBusy(false);}}
@@ -197,7 +197,7 @@ function columnChart(node,columns){const svg=svgEl('svg',{viewBox:'0 0 440 190',
   svg.append(svgEl('line',{x1:22,x2:433,y1:150,y2:150,class:'chart-axis'}));node.replaceChildren(svg);}
 function renderAnalytics(s,tables,audit){const kpis=[['Verified result rate',pct(s.outcomes.resultRate),`${s.outcomes.wins} W · ${s.outcomes.losses} L · ${s.outcomes.draws} D`],['Model decisions',fmt(s.jev.modelDecisions,0),`${s.jev.tacticalDecisions} tactical bypasses · ${s.jev.failedDecisions} failed`],['Median model latency',ms(s.latency.modelMs.p50),`p95 ${ms(s.latency.modelMs.p95)} · n=${s.latency.modelMs.n}`],['Known input tokens',fmt(s.jev.inputTokens,0),s.cost.allModelPricesConfigured?`Estimated input $${s.cost.estimatedInputUSD.toFixed(6)}`:'No priced model usage']];
   $('analytics-kpis').replaceChildren(...kpis.map(([label,value,note])=>{const card=make('div','kpi');card.append(make('span',null,label),make('strong',null,value),make('small',null,note));return card;}));
-  latencyChart($('latency-chart'),tables?.decisions.filter(d=>d.source==='model').map(d=>d.latencyMs));columnChart($('column-chart'),s.columns);
+  if(tables)latencyChart($('latency-chart'),tables.decisions.filter(d=>d.source==='model').map(d=>d.latencyMs));else $('latency-chart').replaceChildren(make('p','empty-state',s.latency.modelMs.n?`Per-decision timings are charted for a single match. Across these server matches: median ${ms(s.latency.modelMs.p50)}, p95 ${ms(s.latency.modelMs.p95)}, n=${s.latency.modelMs.n} model calls.`:'No model-call timings recorded. Local and tactical decisions are not model calls.'));columnChart($('column-chart'),s.columns);
   pairs($('latency-details'),[['Mean',ms(s.latency.modelMs.mean)],['p99',ms(s.latency.modelMs.p99)],['Preparation median',ms(s.latency.preparationMs.p50)],['Human wall-turn median',ms(s.latency.humanWallTurnMs.p50)]]);
   const heat=$('heatmap'),values=s.heatmap.human.map((v,i)=>v+s.heatmap.jev[i]),max=Math.max(...values,1);heat.replaceChildren();for(let r=5;r>=0;r--)for(let c=0;c<7;c++){const i=r*7+c,value=values[i],level=value?Math.max(1,Math.ceil(value/max*4)):0,cell=make('div',`heat-cell heat-${level}`,String(value));cell.title=`Row ${r+1}, column ${c+1}: human ${s.heatmap.human[i]}, opponent ${s.heatmap.jev[i]}`;heat.append(cell);}
   $('tactics-table').replaceChildren(table(['Metric','Human','Opponent'],[
@@ -258,7 +258,7 @@ async function init(){if(['easy','normal','hard','jev'].includes(prefs.difficult
   try{await refreshIdentity();$('mode').value=identity.jevConfigured?(prefs.mode==='local'?'local':'jev'):'local';syncControls();
     if(launch){const {data}=await api('/api/context/redeem',{method:'POST',body:{ticket:launch}});if(data.requiresLogin)notice('Community launch staged. Connect the same Discord account to verify the server and channel.',true);else{await refreshIdentity();notice('Discord community context verified for this launch.',true);}}
     else if(!identity.jevConfigured)notice('Local practice is ready. Configure the server’s TypeSafe key to enable real Jev; Discord credentials enable ranked results.',true);
-    if(identity.activeMatchId)await resumeMatch(identity.activeMatchId);
+    if(identity.activeMatchId)await resumeMatch(identity.activeMatchId,{keepNotice:Boolean(launch)});
   }catch(error){notice(`Local practice is available. ${errorMessage(error)}`);}
   if(!match){const recent=localHistory.at(-1);if(recent?.match?.status==='active'){try{replay(recent.match.actions);localExport=recent;match={...recent.match,local:true,turnReadyAt:Date.now()};renderBoard();renderDecision();await localOpponent();}catch{/* Invalid local storage never affects authoritative state. */}}}
   if(new URLSearchParams(location.search).get('auth')==='denied')notice('Discord sign-in was cancelled. Guest practice remains available.');

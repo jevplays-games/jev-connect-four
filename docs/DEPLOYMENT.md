@@ -13,7 +13,7 @@ The local server is not intended to be exposed through a public interface or rev
 | Variable | Purpose |
 |---|---|
 | `APP_ORIGIN` | Exact canonical browser origin; include scheme and local port when applicable |
-| `LEGACY_ORIGINS` | Optional comma-separated old origins that are still served as themselves (sign-in, cookies and `Origin` checks follow the request's host). Discord launch links always use `APP_ORIGIN` |
+| `LEGACY_ORIGINS` | Optional comma-separated old origins that are still served as themselves (sign-in, cookies and `Origin` checks follow the request's host). Discord launch links always use `APP_ORIGIN`. **Worker only**: the plain Node server ignores it (see below) |
 | `APP_SECRET` | At least 32 characters; production random secret for session-bound HMAC uses, abuse keys and cursors |
 | `TYPESAFE_API_KEY` | Server-only Jev bearer credential |
 | `JEV_MODEL` | Pinned model name; initial profile uses `jev-1.13.0` |
@@ -37,8 +37,8 @@ The same Worker `fetch` handler runs on plain Node through `scripts/dev.mjs` in 
 
 - Listens on `PORT` (injected by the host) at `HOST` (default `0.0.0.0`). TLS is terminated by the proxy.
 - Worker-equivalent environment: `DEV_LOCAL` is not set, so ranked play, Discord interactions, OAuth and the Activity are enabled and cookies are `Secure`. Startup fails without `APP_ORIGIN` and an `APP_SECRET` of 32+ characters.
-- Required: `APP_ORIGIN` (`https://choice-four.jevplay.games`), `APP_SECRET`, `TYPESAFE_API_KEY`, `DISCORD_CLIENT_ID`, `DISCORD_CLIENT_SECRET`, `DISCORD_PUBLIC_KEY`. Optional: `LEGACY_ORIGINS`, `HOST`, `DB_FILE`, `TRUST_PROXY`, `ADMIN_DISCORD_IDS` and the limit variables above.
-- `TRUST_PROXY=1` takes the client address for abuse buckets from the last `X-Forwarded-For` entry; with `0` every visitor shares the proxy address and so one guest quota. The request URL is always built from `APP_ORIGIN`; the CSRF `Origin` checks still compare against it.
+- Required: `APP_ORIGIN` (`https://choice-four.jevplay.games`), `APP_SECRET`, `TYPESAFE_API_KEY`, `DISCORD_CLIENT_ID`, `DISCORD_CLIENT_SECRET`, `DISCORD_PUBLIC_KEY`. Optional: `HOST`, `DB_FILE`, `TRUST_PROXY`, `ADMIN_DISCORD_IDS` and the limit variables above.
+- `TRUST_PROXY=1` takes the client address for abuse buckets from the last `X-Forwarded-For` entry; with `0` every visitor shares the proxy address and so one guest quota. The request URL is always built from `APP_ORIGIN` (the `Host` header is ignored); the CSRF `Origin` checks still compare against it. So the Node server answers on that one origin only: `LEGACY_ORIGINS` has no effect here, and serving the old hostname is **Worker-only**. On Node hosting, redirect `connect-four.jevplay.games` to `APP_ORIGIN` at the host or DNS layer instead. Otherwise browsers on the old host get `403 ORIGIN_REJECTED` on every POST, and sign-in returns to the new host where their cookie does not exist. A request target carrying credentials (`https://user:pw@…`) gets `400 BAD_REQUEST_TARGET`.
 - SQLite lives at `data/choice-four.sqlite` (private, never under `public/`). A host that still has the pre-rename `data/connect-four.sqlite` keeps using it until it is renamed or `DB_FILE` is set. The filesystem is ephemeral: matches, sessions and the ranked leaderboard are lost on redeploy.
 - The Cloudflare cron is replaced by an in-process 60-second timer running the same cleanup/expiry handler.
 

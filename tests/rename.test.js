@@ -108,3 +108,11 @@ test('a Discord launch received on the legacy host links to the canonical Choice
   const button=data.data.components[0].components[0];
   assert.equal(button.label,'Play Choice Four');assert.equal(new URL(button.url).origin,env.APP_ORIGIN);
 });
+
+test('an interrupted match is offered back only while recent and newest, so an old outage does not reopen on every load',async t=>{
+  let clock=Date.now();const env=environment({FETCH:async()=>new Response('',{status:503}),CLOCK:()=>clock});t.after(()=>env.DB.close());
+  const c=await client(env);let m=(await c.start()).data;m=(await c.drop(m,3)).data;assert.equal(m.status,'interrupted');
+  assert.equal((await c.call('/api/me')).data.activeMatchId,m.id,'a fresh interruption is offered so the player can continue as local practice');
+  clock+=31*60*1000;
+  assert.equal((await c.call('/api/me')).data.activeMatchId,null,'an interruption older than 30 minutes is not reopened');
+});
