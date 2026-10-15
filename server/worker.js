@@ -78,9 +78,12 @@ async function operatorAnalytics(env,session) {
     noUserIdentities:true};
 }
 /** APP_ORIGIN is canonical; LEGACY_ORIGINS (comma-separated) are old hostnames still served until cutover. */
+let legacyParsed={raw:null,origins:[]};
 export function servedOrigins(env) {
   // A malformed legacy entry is skipped and logged, so a config typo cannot take down the canonical host.
-  const legacy=(env.LEGACY_ORIGINS||'').split(',').map(o=>o.trim()).filter(Boolean).flatMap(o=>{
+  // The list is parsed once per LEGACY_ORIGINS value, so each bad entry logs one warning, not one per request.
+  const raw=env.LEGACY_ORIGINS||'';
+  if(legacyParsed.raw!==raw)legacyParsed={raw,origins:raw.split(',').map(o=>o.trim()).filter(Boolean).flatMap(o=>{
     // D9: only a bare origin is accepted. The entry (less one trailing '/') must equal url.origin and hold no
     // '@', '?', '#' or '*', so 'https://user:pw@evil.example' is refused rather than normalised to evil.example.
     let u=null;try{u=new URL(o);}catch{}
@@ -88,8 +91,8 @@ export function servedOrigins(env) {
       console.warn('LEGACY_ORIGIN_IGNORED',JSON.stringify({entry:o}));return [];
     }
     return [u.origin];
-  });
-  return [new URL(env.APP_ORIGIN).origin,...legacy];
+  })};
+  return [new URL(env.APP_ORIGIN).origin,...legacyParsed.origins];
 }
 export async function route(request,env) {
   const url=new URL(request.url),path=url.pathname;

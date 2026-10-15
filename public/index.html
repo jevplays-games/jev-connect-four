@@ -7,7 +7,7 @@
 <meta property="og:type" content="website"><meta property="og:site_name" content="jevplay.games"><meta property="og:title" content="Choice Four · jevplay.games">
 <meta property="og:description" content="Four in a row against Jev. Inspect structured decisions and measure every move.">
 <meta property="og:url" content="https://choice-four.jevplay.games/"><meta property="og:image" content="https://choice-four.jevplay.games/brand/og.png">
-<meta property="og:image:width" content="1200"><meta property="og:image:height" content="630"><meta property="og:image:alt" content="Choice Four on jevplay.games: a pink disc dropping into an ink pixel-window grid beside a white disc.">
+<meta property="og:image:width" content="1200"><meta property="og:image:height" content="630"><meta property="og:image:alt" content="Choice Four on jevplay.games: a pink pixel desktop with column probabilities and a board showing four pink discs winning diagonally beside paper discs marked with a pixel J.">
 <meta name="twitter:card" content="summary_large_image"><meta name="twitter:image" content="https://choice-four.jevplay.games/brand/og.png">
 <link rel="icon" type="image/png" sizes="32x32" href="/brand/favicon-32.png">
 <link rel="icon" type="image/svg+xml" href="/brand/icon.svg">
@@ -28,7 +28,7 @@
 <section id="page-play" class="page active jv-first" aria-label="Play Choice Four">
 <div class="play-layout">
 <div class="jv-panel game-card" id="game" tabindex="-1">
-<div class="game-heading jv-pip-hide"><div class="player-label" id="human-label"><span class="disc-key human" role="img" aria-label="Human discs: pink, marked H">H</span><div><strong id="human-name">You</strong><span>Human</span></div></div>
+<div class="game-heading jv-pip-hide"><div class="player-label" id="human-label"><span class="disc-key human" role="img" aria-label="Human discs: solid pink, no mark">H</span><div><strong id="human-name">You</strong><span>Human</span></div></div>
 <div class="player-label opponent" id="opponent-label"><div><strong id="opponent-name">Local practice</strong><span id="opponent-subtitle">Not Jev</span></div><span class="disc-key jev" role="img" aria-label="Opponent discs: white with an ink ring, marked J">J</span></div></div>
 <div class="board-shell jv-fit"><div id="column-controls" class="column-controls" role="group" aria-label="Choose a column to drop a disc"></div>
 <div id="board" class="board jv-tray" aria-hidden="true"></div></div>
@@ -69,7 +69,7 @@
 </section>
 <section id="page-leaderboard" class="page" aria-label="Leaderboard" hidden>
 <div class="section-header"><div><p class="eyebrow">VERIFIED PLAY. FAIR COMPARISONS.</p><h2>The leaderboard</h2><p class="muted">Twenty verified games qualify a player for a rank in each cohort.</p></div></div>
-<div class="jv-panel dashboard-card"><div class="leader-controls"><label>Scope<select id="leader-scope"><option value="world">World</option><option value="server">Discord server</option><option value="channel">Discord channel</option></select></label><label>Difficulty<select id="leader-difficulty"><option>easy</option><option selected>normal</option><option>hard</option><option>jev</option></select></label><label>Starting side<select id="leader-side"><option value="1">Human first</option><option value="2">Jev first</option></select></label><label>Opponent version<select id="leader-version"><option value="">Latest available</option></select></label><button class="button primary" id="load-leaders">Refresh</button></div>
+<div class="jv-panel dashboard-card"><div class="leader-controls"><label>Scope<select id="leader-scope"><option value="world">World</option><option value="server">Discord server</option><option value="channel">Discord channel</option></select></label><label>Difficulty<select id="leader-difficulty"><option value="easy">Easy</option><option value="normal" selected>Normal</option><option value="hard">Hard</option><option value="jev">Jev</option></select></label><label>Starting side<select id="leader-side"><option value="1">Human first</option><option value="2">Jev first</option></select></label><label>Opponent version<select id="leader-version"><option value="">Latest available</option></select></label><button class="button primary" id="load-leaders">Refresh</button></div>
 <p id="leader-context" class="fineprint">Community views require a fresh /play launch from the relevant Discord channel.</p><div id="leader-table" class="table-scroll"><p class="empty-state">Load a leaderboard to see verified results.</p></div><button class="button secondary" id="leader-more" hidden>Load more</button></div>
 </section>
 </main>

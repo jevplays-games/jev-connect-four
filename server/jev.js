@@ -132,7 +132,7 @@ export async function executeDecision(plan,env,options={}) {
         ranked,factors:ranked[0].factors,attempts,usage:valid.usage,response:valid,
         latencyMs:performance.now()-started,prepareMs:plan.prepareMs,requestHash:plan.requestHash,
         responseHash:await sha256(canonical(valid)),candidateCount:plan.candidates.length,eligibleCount:plan.eligible.length,
-        utilityGap:ranked.length>1?ranked[0].utility-ranked[1].utility:null,reason:'Highest weighted JEV factor score among eligible candidates'};
+        utilityGap:ranked.length>1?ranked[0].utility-ranked[1].utility:null,reason:'Highest weighted Jev factor score among eligible candidates'};
     } catch(error) {
       if(!error.alreadyRecorded) attempts.push({attempt,httpStatus,latencyMs:performance.now()-t,
         errorCode:error.name==='TimeoutError'||error.name==='AbortError'?'JEV_TIMEOUT':error.code||'JEV_NETWORK_OR_SCHEMA_ERROR'});

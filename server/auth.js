@@ -43,10 +43,16 @@ export async function contextFor(env,session,id) {
     id,session.user_id,session.token_hash,now(env));
   assert(context,403,'CONTEXT_EXPIRED_OR_INVALID');return context;
 }
+const INTERRUPTED_RESUME_MS=30*60*1000;
 export async function me(request,env) {
   const session=await getSession(request,env,true),user=await userFor(env,session);
   const contexts=user?await rows(env,'SELECT id,guild_id,channel_id,verified_at,expires_at FROM context_grants WHERE user_id=? AND session_hash=? AND expires_at>? ORDER BY verified_at DESC',user.id,session.token_hash,now(env)):[];
-  const active=await one(env,`SELECT id FROM matches WHERE ${user?'user_id':'guest_session'}=? AND status IN ('active','thinking','interrupted') ORDER BY started_at DESC LIMIT 1`,user?.id||session.token_hash);
+  // An interrupted match is offered back (to continue as local practice) only while it is recent and is the owner's
+  // newest match; otherwise an old outage would reopen on every load.
+  const owner=user?'user_id':'guest_session';
+  const active=await one(env,`SELECT id FROM matches m WHERE ${owner}=? AND (status IN ('active','thinking') OR (status='interrupted' AND finished_at>?
+    AND NOT EXISTS (SELECT 1 FROM matches n WHERE n.${owner}=m.${owner} AND n.started_at>m.started_at))) ORDER BY started_at DESC LIMIT 1`,
+    user?.id||session.token_hash,now(env)-INTERRUPTED_RESUME_MS);
   const adminIds=(env.ADMIN_DISCORD_IDS||'').split(',').map(x=>x.trim());
   return json({user:user?{id:user.id,displayName:user.display_name}:null,csrf:await csrfFor(session,env),contexts,
     activeMatchId:active?.id??null,jevConfigured:!!env.TYPESAFE_API_KEY,discordConfigured:!!(env.DISCORD_CLIENT_ID&&env.DISCORD_CLIENT_SECRET),
