@@ -71,8 +71,10 @@ test('a malformed LEGACY_ORIGINS entry is ignored and logged instead of failing 
 });
 
 test('D9: LEGACY_ORIGINS entries that are not a bare origin are refused, not normalised',async t=>{
-  const legacy='http://127.0.0.1:8787';
-  for(const bad of ['https://user:pw@evil.example','https://evil.example#@connect-four.jevplay.games','https://evil.example/path','https://evil.example?q=1','https://*.jevplay.games']){
+  // Both the real pre-rename host and a loopback stand-in must keep serving beside every hostile entry.
+  for(const legacy of ['https://connect-four.jevplay.games','http://127.0.0.1:8787'])
+  for(const bad of ['https://user:pw@evil.example','https://:pw@evil.example','https://evil.example#@connect-four.jevplay.games','https://evil.example/path',
+    'https://evil.example?q=1','https://evil.example?','https://evil.example#','https://*.jevplay.games']){
     const env=environment({LEGACY_ORIGINS:`${bad},${legacy}`});t.after(()=>env.DB.close());
     const warned=[];const warn=t.mock.method(console,'warn',(...args)=>warned.push(args.join(' ')));
     const send=origin=>worker.fetch(new Request(origin+'/api/health'),env,{waitUntil(){}});
@@ -82,7 +84,8 @@ test('D9: LEGACY_ORIGINS entries that are not a bare origin are refused, not nor
     }
     assert.equal((await send(env.APP_ORIGIN)).status,200,bad);
     assert.equal((await send(legacy)).status,200,bad);
-    assert.ok(warned.some(w=>w.includes('LEGACY_ORIGIN_IGNORED')&&w.includes(JSON.stringify({entry:bad}))),warned.join('\n'));
+    // One structured warning per bad entry, not one per request.
+    assert.equal(warned.filter(w=>w.includes('LEGACY_ORIGIN_IGNORED')&&w.includes(JSON.stringify({entry:bad}))).length,1,warned.join('\n'));
     warn.mock.restore();
   }
   // A bare origin, with or without one trailing slash, is still accepted.
