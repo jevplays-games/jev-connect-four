@@ -22,7 +22,7 @@ Choice Four is a playable, framework-free four-in-a-row game with a server-side 
 > [!NOTE]
 > **Local practice works immediately without API keys or an npm install.** Live Jev and Discord features are implemented but require your credentials and application configuration. No live external integration or Cloudflare deployment was exercised while assembling this package. See [verification](docs/VERIFICATION.md).
 
-![Choice Four mid-game on desktop: an ink board with pink human discs and paper Jev discs marked J, beside the decision panel comparing Jev's candidate columns](docs/previews/desktop.png)
+![Choice Four mid-game in local practice on desktop: an ink board with pink human discs and paper opponent discs marked J, beside the decision panel comparing the local opponent's candidate columns](docs/previews/desktop.png)
 
 ## Quick start
 
