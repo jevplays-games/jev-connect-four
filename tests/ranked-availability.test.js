@@ -19,7 +19,7 @@ test('a ranked start still requires a Discord account, whatever the page shows',
   assert.equal(refused.status,401);assert.equal(refused.data.error,'DISCORD_LOGIN_REQUIRED');assert.equal(await matchCount(env),0);
   const unranked=await guest.start({ranked:false});assert.equal(unranked.status,201);assert.equal(unranked.data.ranked,false);
 });
-test('a signed-in player can start a ranked match; without the JEV key nobody can',async t=>{
+test('a signed-in player can start a ranked match; without the Jev key nobody can',async t=>{
   const env=environment();t.after(()=>env.DB.close());
   const ranked=await (await client(env,{user:true})).start({ranked:true});
   assert.equal(ranked.status,201);assert.equal(ranked.data.ranked,true);

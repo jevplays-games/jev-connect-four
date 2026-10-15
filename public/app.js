@@ -4,6 +4,8 @@ import {summarize,flattenEvidence,csv} from './analytics.js';
 function uid(){if(crypto.randomUUID)return crypto.randomUUID();const a=crypto.getRandomValues(new Uint8Array(16));a[6]=(a[6]&15)|64;a[8]=(a[8]&63)|128;const h=[...a].map(x=>x.toString(16).padStart(2,'0')).join('');return h.slice(0,8)+'-'+h.slice(8,12)+'-'+h.slice(12,16)+'-'+h.slice(16,20)+'-'+h.slice(20);}
 const $=id=>document.getElementById(id),fmt=(n,d=1)=>Number.isFinite(n)?n.toLocaleString(undefined,{maximumFractionDigits:d}):'—';
 const pct=n=>Number.isFinite(n)?`${fmt(n*100,1)}%`:'—';
+// Difficulty ids are stored identifiers ('jev' included); prose shows the same labels as the Difficulty menus.
+const LEVELS={easy:'Easy',normal:'Normal',hard:'Hard',jev:'Jev'},level=d=>LEVELS[d]??d;
 const ms=n=>Number.isFinite(n)?n>=1000?`${fmt(n/1000,2)} s`:`${fmt(n,0)} ms`:'—';
 const make=(tag,className,text)=>{const e=document.createElement(tag);if(className)e.className=className;if(text!==undefined)e.textContent=text;return e;};
 function readStorage(key,fallback){try{return JSON.parse(localStorage.getItem(key))??fallback;}catch{return fallback;}}
@@ -177,7 +179,7 @@ async function currentExport(){if(!match)throw new Error('Start a match first.')
 async function loadAnalytics(){try{let summary,tables=null,audit=null;
     if($('analytics-scope').value==='mine'){const {data}=await api('/api/analytics/me');summary=data.summary;$('analytics-coverage').textContent=`Server matches: ${data.sample.included} of ${data.sample.total}. ${data.sample.limited?'Limited to the most recent sample.':'All currently selected history included.'} Local practice is excluded.`;}
     else if(match){const exp=await currentExport();summary=summarize([exp]);tables=flattenEvidence([exp]);if(!isLocal())audit=(await api(`/api/matches/${match.id}/analytics`)).data.audit;
-      $('analytics-coverage').textContent=isLocal()?'Local practice measurements · unverified · never part of ranked results.':`Match ${match.id.slice(0,8)} · ${summary.eventCount} audit events · ${match.difficulty} · ${match.humanDisc===1?'human':'Jev'} first.`;}
+      $('analytics-coverage').textContent=isLocal()?'Local practice measurements · unverified · never part of ranked results.':`Match ${match.id.slice(0,8)} · ${summary.eventCount} audit events · ${level(match.difficulty)} · ${match.humanDisc===1?'human':'Jev'} first.`;}
     else{summary=summarize([]);$('analytics-coverage').textContent='Start a match to collect analytics. No synthetic data is shown.';}
     liveAnalysis={summary,tables,audit};renderAnalytics(summary,tables,audit);
   }catch(error){notice(errorMessage(error));}}
@@ -217,7 +219,7 @@ async function loadLeaders(more=false){try{const scope=$('leader-scope').value,c
   if($('leader-version').value)q.set('opponentVersion',$('leader-version').value);if(context)q.set('contextId',context.id);if(more&&leaderCursor)q.set('cursor',leaderCursor);
   const {data}=await api('/api/leaderboard?'+q);leaderCursor=data.nextCursor;leaderRows=more?[...leaderRows,...data.rows]:data.rows;
   $('leader-table').replaceChildren(table(['Rank','Player','Games','W','L','D','Result rate','Streak','Best'],leaderRows.map(r=>[r.provisional?'Provisional':r.rank,r.displayName,r.games,r.wins,r.losses,r.draws,pct(r.resultRate),r.currentStreak,r.bestStreak])));
-  $('leader-more').hidden=!leaderCursor;$('leader-context').textContent=`${data.scope.toUpperCase()} · ${data.difficulty} · ${data.humanDisc===1?'human':'Jev'} first · opponent ${data.opponentVersion||'not yet available'} · results as of ${new Date(data.asOf).toLocaleString()}`;
+  $('leader-more').hidden=!leaderCursor;$('leader-context').textContent=`${data.scope.toUpperCase()} · ${level(data.difficulty)} · ${data.humanDisc===1?'human':'Jev'} first · opponent ${data.opponentVersion||'not yet available'} · results as of ${new Date(data.asOf).toLocaleString()}`;
   const selected=$('leader-version').value;$('leader-version').replaceChildren(new Option('Latest available',''),...data.availableVersions.map(v=>new Option(v,v)));if(selected)$('leader-version').value=selected;
   }catch(error){$('leader-table').replaceChildren(make('p','empty-state',errorMessage(error)));$('leader-more').hidden=true;}}
 function renderReplay(){const n=Number($('replay-slider').value),state=replay(replayActions.slice(0,n));drawBoard($('replay-board'),state,replayHumanDisc);$('replay-status').textContent=`Move ${n} of ${replayActions.length} · ${state.status}`;$('replay-text').textContent=boardRows(state,3-replayHumanDisc).join('\n')+'\n\nH = human · J = opponent · . = empty';}
