@@ -20,7 +20,8 @@
     "discord:register": "node --env-file-if-exists=.env scripts/register-discord.mjs",
     "deploy": "wrangler deploy",
     "db:remote": "wrangler d1 migrations apply DB --remote",
-    "db:local": "wrangler d1 migrations apply DB --local"
+    "db:local": "wrangler d1 migrations apply DB --local",
+    "deploy:godaddy": "node --env-file-if-exists=.env scripts/godaddy-deploy.js"
   },
   "devDependencies": {
     "wrangler": "4.35.0",

@@ -114,3 +114,12 @@ Session cookies are scoped to the host that set them, so after the 301 a player 
 A malformed `LEGACY_ORIGINS` entry is skipped with a `LEGACY_ORIGIN_IGNORED` warning in the Worker log rather than failing requests; check the log after editing it.
 
 Stored identifiers do not change: v1 replay hashes keep the `connect-four` domain string, replay exports stay `jev-arcade-replay/1`, and `jev-connect-four-audit/1` exports still verify alongside new `jev-choice-four-audit/1` ones.
+
+## Continuous deployment to GoDaddy
+
+`.github/workflows/deploy.yml` runs `npm test` on every pull request and push. On a push to `main` (or **Run workflow**) it then zips the committed tree with `git archive` and `scripts/godaddy-deploy.js` uploads it through the GoDaddy Hosting API (`https://api.godaddy.com/v1/hosting`), waits for the import, and deploys it to the published app `NODEJS-xq0a2z9rrm`. A failed test, import or build stops the run and leaves the live app unchanged.
+
+- Repository secret `GODADDY_PAT`: a GoDaddy Personal Access Token with `hosting.application:read`, `hosting.source:write` and `hosting.deployment:execute`. Without it the deploy step is skipped with a warning.
+- Optional repository variable `GODADDY_APP_ID` overrides the target app (API IDs carry the `NODEJS-` prefix).
+- Runtime configuration is not in the zip: keep it under the app's **Settings → Secrets** (Preview and Publish) in GoDaddy.
+- Manual deploy: put `GODADDY_APP_ID` and `GODADDY_PAT` in `.env`, then `git archive --format=zip -o deploy.zip HEAD && npm run deploy:godaddy -- deploy.zip`.
